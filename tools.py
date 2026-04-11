@@ -1,13 +1,14 @@
+import json
 import requests
 from pydantic import BaseModel, Field
+from playwright.sync_api import sync_playwright
+import time
 
 #declaring Models
 class TrainSearchInput(BaseModel):
     fromstation: str=Field(description="The departure station name (e.g., Aluva)")
     tostation: str=Field(description="The destination station name (e.g., Bangalore)")
     date: str=Field(description="Date in DD-MM-YYYY format")
-
-
 
 STATIONCODES={
     "aluva": "AWY",
@@ -19,26 +20,45 @@ STATIONCODES={
     "kochi": "ERS" 
 }
 
-def availability(input: str) -> str:
-    print(f"Searching train availability for: {input}")
+
+
+def availability(fromstation: str, tostation: str, date: str) -> str:
+    print(f"Searching train availability for: {tostation} to {fromstation} on {date}")
 
     try:
-        data=json.loads(input)
-        fromcode=STATIONCODES.get(data['fromstation'].lower())
-        tocode=STATIONCODES.get(data['tostation'].lower())
-        date=data['date']
+        fromcode=STATIONCODES.get(fromstation.lower())
+        tocode=STATIONCODES.get(tostation.lower())
+        date=date
 
         if not fromcode or not tocode:
             return "Could not find Station Codes for these Stations. Please Retry with Major Stations"
         
-        url=f"https://www.confirmtkt.com/itinerary-sdk/api/trains/betweenStations?fromCode={fromcode}&toCode={tocode}&date={date}"
-        headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
 
-        response=requests.get(url,headers=headers)
-        result=response.json()
-        print(f"Trains: {result}")
+        url = f"https://www.confirmtkt.com/rbooking/trains/from/{fromcode}/to/{tocode}/{date}"
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True) 
+            context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            page = context.new_page()
+
+            page.goto(url, wait_until="networkidle")
+            time.sleep(3)
+            content = page.content()
+
+            if "No trains found" in content:
+                browser.close()
+                return f"No trains found for {fromstation} to {tostation} on {date}."
+            
+            train_elements = page.query_selector_all(".train-name")
+            results = [el.inner_text() for el in train_elements[:5]]
+            
+            browser.close()
+
+            if not results:
+                return "I reached the page, but I couldn't find any train names. The layout might have changed."
+                
+            return f"I found these trains: {', '.join(results)}"
+        
     except Exception as e:
         print("FAILED!!")
         print(e)

@@ -19,12 +19,12 @@ def build_agent():
     
     return create_agent(
         model=llm, tools=tools,
-        system_prompt="You are Rail Agent, a helpful assistant for Indian railway queries. Use the provided tools when the user asks about train availability or tracking."
+        system_prompt="You are Rail Agent, a helpful assistant for Indian railway queries. When a user asks for a date, always use 2026 unless they specify otherwise. Use the provided tools when the user asks about train availability or tracking."
         )
 
 
 if __name__=="__main__":
-    agent = build_agent()
+    agent=build_agent()
     print("\nWELCOME TO RAIL AGENT. How can we help!?\n")
     while True:
         userinput=input("\nYou: ")
@@ -39,7 +39,7 @@ if __name__=="__main__":
         if isinstance(reply.content, str):
             cleantext=reply.content
         elif isinstance(reply.content, list):
-            cleantext="".join([block['text'] for block in reply.content if block.get('type') == 'text'])
+            cleantext="".join([block['text'] for block in reply.content if block.get('type')=='text'])
         else:
             cleantext=str(reply.content)
 
