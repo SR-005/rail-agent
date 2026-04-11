@@ -37,27 +37,39 @@ def availability(fromstation: str, tostation: str, date: str) -> str:
         url = f"https://www.confirmtkt.com/rbooking/trains/from/{fromcode}/to/{tocode}/{date}"
 
         with sync_playwright() as p:
+            print("Debug0")
             browser = p.chromium.launch(headless=True) 
             context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             page = context.new_page()
 
+            print("Debug1")
+
             page.goto(url, wait_until="networkidle")
-            time.sleep(3)
+            time.sleep(4)
             content = page.content()
+
+            print("Debug2")
 
             if "No trains found" in content:
                 browser.close()
                 return f"No trains found for {fromstation} to {tostation} on {date}."
             
-            train_elements = page.query_selector_all(".train-name")
-            results = [el.inner_text() for el in train_elements[:5]]
+            train_rows = page.query_selector_all('div.body-sm.truncate.text-neutral-800')
             
+            results = []
+            for row in train_rows:
+                text = row.inner_text().strip()
+                if text:
+                    # 'text' will look like "16350 Rajya Rani Exp"
+                    results.append(text)
+
+            print(f"Debug3 - Found: {results}") # Check your console for this!
             browser.close()
 
             if not results:
-                return "I reached the page, but I couldn't find any train names. The layout might have changed."
-                
-            return f"I found these trains: {', '.join(results)}"
+                return "I reached the page, but the train list was empty. There might be no trains on this date."
+            
+            return f"I found these trains: {', '.join(results[:5])}"
         
     except Exception as e:
         print("FAILED!!")
