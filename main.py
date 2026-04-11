@@ -1,19 +1,20 @@
 import os
 from dotenv import load_dotenv
 from langchain.agents import create_agent
-from langchain_core.tools import Tool
+from langchain_core.tools import Tool, StructuredTool
 from langchain_google_genai import ChatGoogleGenerativeAI
-from tools import availability, trackstatus
+from tools import availability, trackstatus, TrainSearchInput
 
 load_dotenv()
 
 def build_agent():
     os.getenv("GOOGLE_API_KEY")
-    llm=ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+    llm=ChatGoogleGenerativeAI(model="gemini-flash-lite-latest", temperature=0)
 
     tools=[
-        Tool(name="SearchTrains", func=availability, description="Find train availability between two stations on a given date."),
-        Tool(name="TrackStatus", func=trackstatus, description="Track a train number and notify when a seat opens up.")
+        StructuredTool.from_function(name="SearchTrains", func=availability, description="Find train availability between two stations on a given date.",
+             args_schema=TrainSearchInput),
+        StructuredTool.from_function(name="TrackStatus", func=trackstatus, description="Track a train number and notify when a seat opens up.")
     ]
     
     return create_agent(
