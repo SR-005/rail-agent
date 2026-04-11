@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_core.tools import Tool, StructuredTool
@@ -17,9 +18,20 @@ def build_agent():
         StructuredTool.from_function(name="TrackStatus", func=trackstatus, description="Track a train number and notify when a seat opens up.")
     ]
     
+    today=datetime.now()
+    tomorrow=today + timedelta(days=1)
+    datecontext=f"Today is {today.strftime('%A, %d-%m-%Y')}. Tomorrow is {tomorrow.strftime('%A, %d-%m-%Y')}."
+
     return create_agent(
         model=llm, tools=tools,
-        system_prompt="You are Rail Agent, a helpful assistant for Indian railway queries. When a user asks for a date, always use 2026 unless they specify otherwise. Use the provided tools when the user asks about train availability or tracking."
+        system_prompt=f"You are the 'Rail Booking Assistant', a specialized agent designed to handle the end-to-end booking process for Indian Railways. "
+        f"CONTEXT: {datecontext}. "
+        "\n\nGUIDELINES:"
+        "\n1. GOAL: Your final goal is to complete a train booking. Treat every request as a step toward that goal."
+        "\n2. SEARCH IS BOOKING: When a user says 'I want to book', do not say 'I can only search'. Instead, say 'I will find the best trains for your booking'. Immediately call SearchTrains to show options."
+        "\n3. MULTI-STEP FLOW: Booking is a process: Find Train -> Select Train -> Fill Details -> Handle CAPTCHA/Payment. You are currently in the 'Finding and Selecting' phase."
+        "\n4. RELATIVE DATES: Use the CONTEXT provided to resolve 'today' or 'tomorrow' into DD-MM-YYYY format before calling tools."
+        "\n5. PERSISTENCE: If a train is full, suggest using 'TrackStatus' as a background monitoring agent to catch a seat for the booking."
         )
 
 
