@@ -103,7 +103,6 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
 
         await page.wait_for_selector(f"#train-{trainnumber}", timeout=10000)
         traincard=page.locator(f"#train-{trainnumber}")
-        print(f"Train Card: {traincard}")
 
         seatcards=traincard.locator("div[data-key]")
         await seatcards.first.wait_for(state="visible", timeout=10000)
@@ -121,24 +120,50 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
             if "refresh" in cleancardtext.lower():
                 print(f"[System] Refreshing {coachtype}...")
                 await card.click()
-                await asyncio.sleep(5) 
-                cleancardtext=" ".join((await card.inner_text()).split())
+                await asyncio.sleep(1)
+
+                for attempt in range(2):
+                    await card.click()
+                    await asyncio.sleep(1.5) 
+                    try:
+                        refreshlogic="""(card) => {
+                            const t = card.innerText.toLowerCase();
+                            const hasData = t.includes('avl') || t.includes('available') || 
+                                           t.includes('wl') || t.includes('rac') || 
+                                           t.includes('regret') || t.includes('not available');
+                            return !t.includes('refresh') && hasData;
+                        }"""
+                        await page.wait_for_function(refreshlogic, arg=await card.element_handle(), timeout=15000)
+                        break 
+                    except:
+                        print(f"[Warning] {coachtype} refresh timed out.")
+
+                cardtext=await card.inner_text()    
+                cleancardtext=" ".join(cardtext.split())
 
             price=re.search(r"₹\s?(\d+)", cleancardtext)
-            status=re.search(r"(AVL|WL|RAC|AVAILABLE)\s?(\d+)", cleancardtext)
+            status=re.search(r"(AVL|WL|RAC|AVAILABLE|Not Available|Regret)\s?(\d*)", cleancardtext)
+            print(cleancardtext)
             
-            if status==None:
-                mainstatus="TICKETS NOT AVAILABLE"
-                status="Regret"
-            elif status.group(1) in ["AVL","AVAILABLE"]:
-                mainstatus="AVAILABLE"
-            elif status.group(1)=="WL":
-                mainstatus="Waiting List"
-            elif status.group(1)=="RAC":
-                mainstatus="RAC"
+            if status!=None:
+                if status.group(1)=="Regret":
+                    mainstatus="Not Available"
+                    message="REGRET"
+                elif status.group(1)=="Not Available":
+                    mainstatus="Not Available"
+                    message="-"    
+                elif status.group(1) in ["AVL","AVAILABLE"]:
+                    mainstatus="AVAILABLE"
+                elif status.group(1)=="WL":
+                    mainstatus="Waiting List"
+                elif status.group(1)=="RAC":
+                    mainstatus="RAC"
+            else:
+                    mainstatus = "TICKETS NOT AVAILABLE"
+                    completedstatus = "Regret"
 
             completedprice=f"₹{price.group(1)}" if price else "N/A"
-            completedstatus=f"{mainstatus} {status if status=='Regret' else status.group(2)}" if status else "Unknown"
+            completedstatus=f"{mainstatus} {message if status.group(1) in ['REGRET','Not Available'] else status.group(2)}" if status else "Unknown"
 
             formattedresult=f"{coachtype}: {completedprice} | {completedstatus}"
             results.append(formattedresult)
@@ -193,4 +218,4 @@ async def login():
 
 
 if __name__=="__main__":
-    print(asyncio.run(checkseats("18189","Aluva","Ernakulam","17-04-2026")))
+    print(asyncio.run(checkseats("16315","Aluva","Ernakulam","17-04-2026")))
