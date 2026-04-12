@@ -145,6 +145,7 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
             status=re.search(r"(AVL|WL|RAC|AVAILABLE|Not Available|Regret)\s?(\d*)", cleancardtext)
             print(cleancardtext)
             
+            #ticket status description
             if status!=None:
                 if status.group(1)=="Regret":
                     mainstatus="Not Available"
@@ -169,7 +170,8 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
             results.append(formattedresult)
 
         await browser.close()
-        return (f"Results for {trainnumber}:\n" + "\n".join(results))
+        
+    return (f"Results for {trainnumber}:\n" + "\n".join(results))
 
     return (
         f"Availability for Train {trainnumber} from {fromstation} to {tostation} on {date}: "
