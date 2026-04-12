@@ -223,10 +223,22 @@ async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
         await dateinput.click()
         await page.keyboard.press("Control+A")
         await page.keyboard.press("Backspace")
-        await dateinput.fill(date)
+        await dateinput.type(date,delay=50)
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Tab")
         await page.keyboard.press("Enter")
 
-        print("Entered All Details Successfully")
+        if coach!="All Classes":
+            await page.click('#journeyClass')
+            await page.click(f"p-dropdownitem >> text={coach}")
+        
+        searchbutton=page.locator("button.search_btn", has_text="Search Trains")
+        await searchbutton.click()
+
+        await page.wait_for_selector("div.train-item", timeout=15000)
+        return "SUCCESS: Navigated to Results Page."
+
     except Exception as e:
         print(f"An Error Occured {e}")
 
@@ -243,7 +255,8 @@ async def normalbooking(trainnumber: str, fromstation: str, tostation: str, date
     
     fromcode=STATIONCODES.get(fromstation.lower())
     tocode=STATIONCODES.get(tostation.lower())
-    date=date
+    date=date.replace("-", "/")
+    print(date)
 
     await searchfill(fromcode,tocode,date,coach)
 
