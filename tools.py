@@ -99,34 +99,34 @@ loginsession={
 }
 
 async def login():
-    async with async_playwright() as p:
-        browser=await p.chromium.launch(headless=False,args=[
-                    f"--window-size=1920,1080"
-                ])
-        context=await browser.new_context(no_viewport=True)
-        page=await context.new_page()
+    playwright=await async_playwright().start()
 
-        loginsession["browser"]=browser
-        loginsession["page"]=page
+    browser=await playwright.chromium.launch(headless=False,args=[f"--window-size=1920,1080"])
+    context=await browser.new_context(no_viewport=True)
+    page=await context.new_page()
+
+    loginsession["playwright"]=playwright
+    loginsession["browser"]=browser
+    loginsession["page"]=page
 
 
-        await page.goto("https://www.irctc.co.in/nget/train-search")
-        await asyncio.sleep(5)
-        await page.click("text=LOGIN / REGISTER")
+    await page.goto("https://www.irctc.co.in/nget/train-search")
+    await asyncio.sleep(5)
+    await page.click("text=LOGIN / REGISTER")
 
-        await page.fill('input[formcontrolname="userid"]', os.getenv("IRCTCUSER"))
-        await page.fill('input[formcontrolname="password"]', os.getenv("IRCTCPASS"))
+    await page.fill('input[formcontrolname="userid"]', os.getenv("IRCTCUSER"))
+    await page.fill('input[formcontrolname="password"]', os.getenv("IRCTCPASS"))
 
-        sign_in_button=page.locator("button[type='submit']", has_text="SIGN IN")
-        await sign_in_button.click()
+    sign_in_button=page.locator("button[type='submit']", has_text="SIGN IN")
+    await sign_in_button.click()
 
-        try:
-            await page.wait_for_selector("text=LOGOUT", timeout=10000)
-            print("✅ SUCCESS: Logged into IRCTC Dashboard.")
-            return "Login successful! I am now ready to fill your journey details."
-        except:
-            print("Click sent, but I don't see the 'LOGOUT' button yet. "
-                    "Please check if a CAPTCHA appeared or if there is an error message.")
+    try:
+        await page.wait_for_selector("text=LOGOUT", timeout=10000)
+        print("✅ SUCCESS: Logged into IRCTC Dashboard.")
+        return "Login successful! I am now ready to fill your journey details."
+    except:
+        print("Click sent, but I don't see the 'LOGOUT' button yet. "
+                "Please check if a CAPTCHA appeared or if there is an error message.")
     
 if __name__=="__main__":
     asyncio.run(login())
