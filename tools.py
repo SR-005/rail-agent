@@ -6,8 +6,6 @@ from playwright.async_api import async_playwright
 
 load_dotenv()
 
-
-
 loginsession={
     "playwright": None,
     "browser": None,
@@ -26,7 +24,7 @@ STATIONCODES={
 
 
 async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
-    print(f"Searching train searchtrains for: {tostation} to {fromstation} on {date}")
+    print(f"Searching train searchtrains for: {fromstation} to {tostation} on {date}")
 
     try:
         fromcode=STATIONCODES.get(fromstation.lower())
@@ -188,7 +186,6 @@ async def login():
     loginsession["browser"]=browser
     loginsession["page"]=page
 
-
     await page.goto("https://www.irctc.co.in/nget/train-search")
     await asyncio.sleep(5)
     await page.click("text=LOGIN / REGISTER")
@@ -200,13 +197,55 @@ async def login():
     await sign_in_button.click()
 
     try:
-        await page.wait_for_selector("text=LOGOUT", timeout=10000)
+        await page.wait_for_selector("text=MY ACCOUNT", timeout=10000)
         print("Successfully Logged into IRCTC")
-        return "Login successful! I am now ready to fill your journey details."
+        return True
     except:
         print("Click sent, but I don't see the 'LOGOUT' button yet. Please check if a CAPTCHA appeared or if there is an error message.")
-    
+        return False
 
+async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
+    page=loginsession["page"]
+    print(f"[System] Filling search: {fromcode} to {tocode} for {date}")
+
+    try:
+        frominput=page.locator("#origin input")
+        await frominput.fill(fromcode)
+        await asyncio.sleep(1.5)
+        await page.keyboard.press("Enter")
+
+        toinput=page.locator("#destination input")
+        await toinput.fill(tocode)
+        await asyncio.sleep(1.5)
+        await page.keyboard.press("Enter")
+
+        dateinput=page.locator("#jDate input")
+        await dateinput.click()
+        await page.keyboard.press("Control+A")
+        await page.keyboard.press("Backspace")
+        await dateinput.fill(date)
+        await page.keyboard.press("Enter")
+
+        print("Entered All Details Successfully")
+    except Exception as e:
+        print(f"An Error Occured {e}")
+
+async def normalbooking(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
+    loginstatus=await login()
+    if not loginstatus:
+        print("Login Unsuccessfull!! PLEASE TRY AGAIN")
+    else:
+        print("Login Successfull")
+
+    page=loginsession["page"]
+    if not page:
+        return "Error: No active browser session found."
+    
+    fromcode=STATIONCODES.get(fromstation.lower())
+    tocode=STATIONCODES.get(tostation.lower())
+    date=date
+
+    await searchfill(fromcode,tocode,date,coach)
 
 if __name__=="__main__":
-    print(asyncio.run(checkseats("16315","Aluva","Ernakulam","17-04-2026")))
+    asyncio.run(normalbooking("16349","Ernakulam","Aluva","13-04-2026","SL"))
