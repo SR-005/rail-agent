@@ -2,22 +2,11 @@ import asyncio
 import os
 import re
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
 from playwright.async_api import async_playwright
 
 load_dotenv()
 
-#declaring Models
-class TrainSearchInput(BaseModel):
-    fromstation: str=Field(description="The departure station name (e.g., Aluva)")
-    tostation: str=Field(description="The destination station name (e.g., Bangalore)")
-    date: str=Field(description="Date in DD-MM-YYYY format")
 
-class CheckSeatInput(BaseModel):
-    trainnumber: str=Field(description="The 5-digit train number")
-    fromstation: str=Field(description="Re-use the departure station from the search.")
-    tostation: str=Field(description="Re-use the destination station from the search.")
-    date: str=Field(description="Re-use the travel date from the search (DD-MM-YYYY).")
 
 loginsession={
     "playwright": None,
@@ -170,7 +159,7 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
             results.append(formattedresult)
 
         await browser.close()
-        
+
     return (f"Results for {trainnumber}:\n" + "\n".join(results))
 
     return (
