@@ -1,9 +1,9 @@
 import asyncio
 import os
+import re
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from playwright.async_api import async_playwright
-import time
 
 load_dotenv()
 
@@ -19,6 +19,11 @@ class CheckSeatInput(BaseModel):
     tostation: str=Field(description="Re-use the destination station from the search.")
     date: str=Field(description="Re-use the travel date from the search (DD-MM-YYYY).")
 
+loginsession={
+    "playwright": None,
+    "browser": None,
+    "page": None
+}
 
 STATIONCODES={
     "aluva": "AWY",
@@ -44,7 +49,7 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
 
         url=f"https://www.confirmtkt.com/rbooking/trains/from/{fromcode}/to/{tocode}/{date}"
         async with async_playwright() as p:
-            print("DEBUG 0")
+
             browser=await p.chromium.launch(headless=True) 
             context=await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 
@@ -78,6 +83,53 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
 
 async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: str) -> str:
     print(f"Checking Seat Availability of Train Number #{trainnumber}: {fromstation} to {tostation} on {date}")
+
+    async with async_playwright() as p:
+
+        fromcode=STATIONCODES.get(fromstation.lower())
+        tocode=STATIONCODES.get(tostation.lower())
+        date=date
+        if not fromcode or not tocode:
+            return "Could not find Station Codes for these Stations. Please Retry with Major Stations"
+
+        browser=await p.chromium.launch(headless=True) 
+        context=await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        page=await context.new_page()
+
+        url=f"https://www.confirmtkt.com/rbooking/trains/from/{fromcode}/to/{tocode}/{date}"
+
+        await page.goto(url, wait_until="domcontentloaded")
+        await asyncio.sleep(5)
+        content=await page.content()
+
+        await page.wait_for_selector(f"#train-{trainnumber}", timeout=10000)
+        traincard=page.locator(f"#train-{trainnumber}")
+        print(f"Train Card: {traincard}")
+
+        seatcards=traincard.locator("div[data-key]")
+        await seatcards.first.wait_for(state="visible", timeout=10000)
+
+        coachtypes=await seatcards.count()
+        results=[]
+        
+        for i in range(coachtypes):
+            card=seatcards.nth(i)
+            coachtype=await card.get_attribute("data-key") 
+
+            cardtext=await card.inner_text()
+            cleancardtext=" ".join(cardtext.split())
+
+            if "refresh" in cleancardtext.lower():
+                print(f"[System] Refreshing {coachtype}...")
+                await card.click()
+                await asyncio.sleep(2) 
+                cleancardtext=" ".join((await card.inner_text()).split())
+
+            results.append(cleancardtext)
+
+        await browser.close()
+        print(f"Results for {trainnumber}:\n" + "\n".join(results))
+
     return (
         f"Availability for Train {trainnumber} from {fromstation} to {tostation} on {date}: "
         "\n- Sleeper (SL): AVAILABLE 04"
@@ -92,11 +144,6 @@ def trackstatus(trainnumber: str) -> str:
         "I will notify you the moment a seat opens up."
     )
 
-loginsession={
-    "playwright": None,
-    "browser": None,
-    "page": None
-}
 
 async def login():
     playwright=await async_playwright().start()
@@ -122,11 +169,12 @@ async def login():
 
     try:
         await page.wait_for_selector("text=LOGOUT", timeout=10000)
-        print("✅ SUCCESS: Logged into IRCTC Dashboard.")
+        print("Successfully Logged into IRCTC")
         return "Login successful! I am now ready to fill your journey details."
     except:
-        print("Click sent, but I don't see the 'LOGOUT' button yet. "
-                "Please check if a CAPTCHA appeared or if there is an error message.")
+        print("Click sent, but I don't see the 'LOGOUT' button yet. Please check if a CAPTCHA appeared or if there is an error message.")
     
+
+
 if __name__=="__main__":
-    asyncio.run(login())
+    asyncio.run(checkseats("16128","Aluva","Ernakulam","17-04-2026"))
