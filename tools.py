@@ -100,7 +100,6 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
 
         await page.goto(url, wait_until="domcontentloaded")
         await asyncio.sleep(5)
-        content=await page.content()
 
         await page.wait_for_selector(f"#train-{trainnumber}", timeout=10000)
         traincard=page.locator(f"#train-{trainnumber}")
@@ -122,13 +121,30 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
             if "refresh" in cleancardtext.lower():
                 print(f"[System] Refreshing {coachtype}...")
                 await card.click()
-                await asyncio.sleep(2) 
+                await asyncio.sleep(5) 
                 cleancardtext=" ".join((await card.inner_text()).split())
 
-            results.append(cleancardtext)
+            price=re.search(r"₹\s?(\d+)", cleancardtext)
+            status=re.search(r"(AVL|WL|RAC|AVAILABLE)\s?(\d+)", cleancardtext)
+            
+            if status==None:
+                mainstatus="TICKETS NOT AVAILABLE"
+                status="Regret"
+            elif status.group(1) in ["AVL","AVAILABLE"]:
+                mainstatus="AVAILABLE"
+            elif status.group(1)=="WL":
+                mainstatus="Waiting List"
+            elif status.group(1)=="RAC":
+                mainstatus="RAC"
+
+            completedprice=f"₹{price.group(1)}" if price else "N/A"
+            completedstatus=f"{mainstatus} {status if status=='Regret' else status.group(2)}" if status else "Unknown"
+
+            formattedresult=f"{coachtype}: {completedprice} | {completedstatus}"
+            results.append(formattedresult)
 
         await browser.close()
-        print(f"Results for {trainnumber}:\n" + "\n".join(results))
+        return (f"Results for {trainnumber}:\n" + "\n".join(results))
 
     return (
         f"Availability for Train {trainnumber} from {fromstation} to {tostation} on {date}: "
@@ -177,4 +193,4 @@ async def login():
 
 
 if __name__=="__main__":
-    asyncio.run(checkseats("16128","Aluva","Ernakulam","17-04-2026"))
+    print(asyncio.run(checkseats("18189","Aluva","Ernakulam","17-04-2026")))
