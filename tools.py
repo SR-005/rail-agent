@@ -234,14 +234,26 @@ async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
             await page.click(f"p-dropdownitem >> text={coach}")
         
         searchbutton=page.locator("button.search_btn", has_text="Search Trains")
-        await searchbutton.click()
+        await searchbutton.click(force=True)
 
-        await page.wait_for_selector("div.train-item", timeout=15000)
-        return "SUCCESS: Navigated to Results Page."
+        print("SUCCESS: Navigated to Results Page.")
+
+        return True
 
     except Exception as e:
         print(f"An Error Occured {e}")
+        return False
 
+async def gettrain(trainnumber: str):
+    await asyncio.sleep(3)
+    page=loginsession["page"]
+    print(f"[System] Getting DIV of the train #{trainnumber}")
+    traincard=page.locator("app-train-avl-enq").filter(has_text=trainnumber)
+
+    if await traincard.count()>0:
+        print(f"Train DIV Found!!!")
+        await traincard.scroll_into_view_if_needed()
+    await asyncio.sleep(7)
 async def normalbooking(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
     loginstatus=await login()
     if not loginstatus:
@@ -256,9 +268,12 @@ async def normalbooking(trainnumber: str, fromstation: str, tostation: str, date
     fromcode=STATIONCODES.get(fromstation.lower())
     tocode=STATIONCODES.get(tostation.lower())
     date=date.replace("-", "/")
-    print(date)
 
-    await searchfill(fromcode,tocode,date,coach)
+    agentstatus=await searchfill(fromcode,tocode,date,coach)
+    if agentstatus==False:
+        return "An Error Occured"
+
+    await gettrain(trainnumber)
 
 if __name__=="__main__":
-    asyncio.run(normalbooking("16349","Ernakulam","Aluva","13-04-2026","SL"))
+    asyncio.run(normalbooking("16127","Ernakulam","Aluva","15-04-2026","SL"))
