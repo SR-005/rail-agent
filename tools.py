@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import datetime
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
@@ -254,6 +255,40 @@ async def gettrain(trainnumber: str):
         print(f"Train DIV Found!!!")
         await traincard.scroll_into_view_if_needed()
     await asyncio.sleep(7)
+    return traincard
+
+async def getcoach(traincard, coach: str, date: str):
+    page=loginsession["page"]
+    try:
+        coachdiv=traincard.locator("div.pre-avl").filter(has_text=coach)
+        refreshbutton=coachdiv.locator("..").locator("div.link", has_text="Refresh")
+        await asyncio.sleep(4)
+        if await refreshbutton.is_visible():
+            print(f"[System] Refreshing {coach}...")
+            await refreshbutton.click()
+            await asyncio.sleep(4)
+
+        date=datetime.datetime.strptime(date,"%d/%m/%Y")
+        formatteddate=date.strftime("%d %b")
+        print("Formatted Date: ",formatteddate)
+
+        dateselector=traincard.locator("div.pre-avl").filter(has_text=formatteddate)
+        if await dateselector.count()>0:
+            print(f"Found the Date DIV with date {formatteddate}")
+            await dateselector.first.click()
+        else:
+            print(f"Could not find the Date DIV with date {formatteddate}")
+            return False
+        
+        booknowbutton=traincard.locator("button.btnDefault.train_Search", has_text="Book Now")
+        await booknowbutton.wait_for(state="visible",timeout=5000)
+        await booknowbutton.click()
+        await asyncio.sleep(4)
+
+    except Exception as e:
+        print("Error!! ", e)
+    return 0
+
 async def normalbooking(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
     loginstatus=await login()
     if not loginstatus:
@@ -273,7 +308,8 @@ async def normalbooking(trainnumber: str, fromstation: str, tostation: str, date
     if agentstatus==False:
         return "An Error Occured"
 
-    await gettrain(trainnumber)
+    traincard=await gettrain(trainnumber)
+    await getcoach(traincard,coach,date)
 
 if __name__=="__main__":
     asyncio.run(normalbooking("16127","Ernakulam","Aluva","15-04-2026","SL"))
