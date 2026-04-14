@@ -290,7 +290,7 @@ async def gettobooking(traincard, coach: str, date: str):
         print("Error!! ", e)
         return False
 
-async def passengerfill(name: str, age: str, number: str, gender: str, preference: str, number: str):
+async def passengerfill(name: str, age: str, number: str, gender: str, preference: str):
     page=loginsession["page"]
     try:
         print(f"Filling the Details of {name},{age},{gender},{preference}")
@@ -309,8 +309,10 @@ async def passengerfill(name: str, age: str, number: str, gender: str, preferenc
         await page.select_option('select[formcontrolname="passengerBerthChoice"]', label=preference)
         await asyncio.sleep(2)
 
-        nameinput=page.locator('p-autocomplete[formcontrolname="mobileNumber"] input')
+        nameinput=page.locator('#mobileNumber')
         await nameinput.click()
+        await page.keyboard.press("Control+A")
+        await page.keyboard.press("Backspace")
         await nameinput.type(number)
         await asyncio.sleep(4)
 
@@ -348,4 +350,4 @@ async def normalbooking(name: str, age: str,number: str, gender: str, preference
     await passengerfill(name,age,number,gender,preference)
 
 if __name__=="__main__":
-    asyncio.run(normalbooking("Sreeram V Gopal","20","Male","Lower","16127","Ernakulam","Aluva","15-04-2026","SL"))
+    asyncio.run(normalbooking("Sreeram V Gopal","20","9020802929","Male","Lower","16127","Ernakulam","Aluva","15-04-2026","SL"))
