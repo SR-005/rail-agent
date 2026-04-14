@@ -257,7 +257,7 @@ async def gettrain(trainnumber: str):
     await asyncio.sleep(7)
     return traincard
 
-async def getcoach(traincard, coach: str, date: str):
+async def gettobooking(traincard, coach: str, date: str):
     page=loginsession["page"]
     try:
         coachdiv=traincard.locator("div.pre-avl").filter(has_text=coach)
@@ -284,12 +284,44 @@ async def getcoach(traincard, coach: str, date: str):
         await booknowbutton.wait_for(state="visible",timeout=5000)
         await booknowbutton.click()
         await asyncio.sleep(4)
+        return True
 
     except Exception as e:
         print("Error!! ", e)
+        return False
+
+async def passengerfill(name: str, age: str, number: str, gender: str, preference: str, number: str):
+    page=loginsession["page"]
+    try:
+        print(f"Filling the Details of {name},{age},{gender},{preference}")
+        nameinput=page.locator('p-autocomplete[formcontrolname="passengerName"] input')
+        await nameinput.click()
+        await nameinput.type(name)
+        await page.keyboard.press("Tab")
+        await asyncio.sleep(2)
+
+        ageinput=page.locator('input[placeholder="Age"]')
+        await ageinput.type(str(age))
+        await page.keyboard.press("Tab")
+        await asyncio.sleep(2)
+
+        await page.select_option('select[formcontrolname="passengerGender"]', label=gender)
+        await page.select_option('select[formcontrolname="passengerBerthChoice"]', label=preference)
+        await asyncio.sleep(2)
+
+        nameinput=page.locator('p-autocomplete[formcontrolname="mobileNumber"] input')
+        await nameinput.click()
+        await nameinput.type(number)
+        await asyncio.sleep(4)
+
+
+
+    except:
+        pass
     return 0
 
-async def normalbooking(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
+
+async def normalbooking(name: str, age: str,number: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
     loginstatus=await login()
     if not loginstatus:
         print("Login Unsuccessfull!! PLEASE TRY AGAIN")
@@ -306,10 +338,14 @@ async def normalbooking(trainnumber: str, fromstation: str, tostation: str, date
 
     agentstatus=await searchfill(fromcode,tocode,date,coach)
     if agentstatus==False:
-        return "An Error Occured"
+        return "An Error Occured- Could not get to the Search Results page of IRCTC!"
 
     traincard=await gettrain(trainnumber)
-    await getcoach(traincard,coach,date)
+    getbooking=await gettobooking(traincard,coach,date)
+    if getbooking==False:
+        return "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
+    
+    await passengerfill(name,age,number,gender,preference)
 
 if __name__=="__main__":
-    asyncio.run(normalbooking("16127","Ernakulam","Aluva","15-04-2026","SL"))
+    asyncio.run(normalbooking("Sreeram V Gopal","20","Male","Lower","16127","Ernakulam","Aluva","15-04-2026","SL"))
