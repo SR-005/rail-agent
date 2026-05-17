@@ -1,5 +1,6 @@
 import asyncio
 import os
+import subprocess
 import re
 import datetime
 from dotenv import load_dotenv
@@ -179,9 +180,40 @@ def trackstatus(trainnumber: str) -> str:
 async def login():
     playwright=await async_playwright().start()
 
-    browser=await playwright.chromium.launch(headless=False,args=[f"--window-size=1920,1080"])
+    print("[System] Spawning independent Chrome process...")
+    chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+    user_data_dir = r"C:\chrome_dev_profile"
+    
+    try:
+        # DETACHED_PROCESS (0x00000008) cuts the parent-child bond on Windows
+        subprocess.Popen(
+            [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--start-maximized"],
+            creationflags=0x00000008 if os.name == 'nt' else 0,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        # Give Chrome a quick moment to spin up its socket server
+        await asyncio.sleep(2)
+    except Exception as e:
+        print(f"❌ Failed to launch Chrome automatically: {e}")
+        return False
+
+    print("[System] Connecting Playwright via CDP link...")
+    try:
+        browser = await playwright.chromium.connect_over_cdp("http://localhost:9222")
+    except Exception as e:
+        print(f"❌ Connection Failed! {e}")
+        return False
+    
+    context=browser.contexts[0]
+    page=context.pages[0] if context.pages else await context.new_page()
+    
+    '''browser=await playwright.chromium.launch(headless=False,args=[f"--window-size=1920,1080"])
     context=await browser.new_context(no_viewport=True)
-    page=await context.new_page()
+    await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    page=await context.new_page()'''
+
+
 
     loginsession["playwright"]=playwright
     loginsession["browser"]=browser
@@ -291,30 +323,41 @@ async def gettobooking(traincard, coach: str, date: str):
         return False
 
 async def passengerfill(name: str, age: str, number: str, gender: str, preference: str):
-    page=loginsession["page"]
+    page = loginsession["page"]
     try:
-        print(f"Filling the Details of {name},{age},{gender},{preference}")
-        nameinput=page.locator('p-autocomplete[formcontrolname="passengerName"] input')
-        await nameinput.click()
-        await nameinput.type(name)
-        await page.keyboard.press("Tab")
-        await asyncio.sleep(2)
-
-        ageinput=page.locator('input[placeholder="Age"]')
-        await ageinput.type(str(age))
-        await page.keyboard.press("Tab")
-        await asyncio.sleep(2)
-
-        await page.select_option('select[formcontrolname="passengerGender"]', label=gender)
-        await page.select_option('select[formcontrolname="passengerBerthChoice"]', label=preference)
-        await asyncio.sleep(2)
-
-        nameinput=page.locator('#mobileNumber')
+        print(f"Filling the Details of {name}, {age}, {gender}, {preference}")
+        
+        # Name Input
+        nameinput = page.locator('p-autocomplete[formcontrolname="passengerName"] input')
         await nameinput.click()
         await page.keyboard.press("Control+A")
         await page.keyboard.press("Backspace")
-        await nameinput.type(number)
-        await asyncio.sleep(4)
+        await nameinput.type(name, delay=100)
+        await page.keyboard.press("Tab")
+        await asyncio.sleep(0.5)
+
+        # Age Input (Fixed: Click added to shift input focus)
+        ageinput = page.locator('input[placeholder="Age"]')
+        await ageinput.click() 
+        await page.keyboard.press("Control+A")
+        await page.keyboard.press("Backspace")
+        await ageinput.type(str(age), delay=100)
+        await page.keyboard.press("Tab")
+        await asyncio.sleep(1)
+
+        # Dropdowns
+        await page.select_option('select[formcontrolname="passengerGender"]', label=gender)
+        await page.select_option('select[formcontrolname="passengerBerthChoice"]', label=preference)
+        await asyncio.sleep(1)
+
+        # Mobile Number Input
+        mobileinput = page.locator('#mobileNumber')
+        await mobileinput.click()
+        await page.keyboard.press("Control+A")
+        await page.keyboard.press("Backspace")
+        await mobileinput.type(number, delay=100)
+        await page.keyboard.press("Tab")
+        await asyncio.sleep(1)
         
         return True
 
@@ -322,6 +365,68 @@ async def passengerfill(name: str, age: str, number: str, gender: str, preferenc
         print("Error in passengerfill function ", e)
         return False
 
+async def initiatepayment():
+    page = loginsession["page"]
+    try:
+        # 🟢 FIX: Use [id="3"] instead of #3 to prevent the browser syntax error
+        radiobox = page.locator('p-radiobutton[id="3"]')
+        
+        print("[System] Scrolling to Payment Method option...")
+        await radiobox.scroll_into_view_if_needed()
+        
+        # Click the inner widget container to guarantee the PrimeNG event fires
+        print("[System] Selecting Credit/Debit/Net Banking option...")
+        await radiobox.locator('.ui-radiobutton').click()
+        await asyncio.sleep(1.5)
+
+        # Locate and click the Continue button
+        continue_button = page.locator("button.btnDefault.train_Search", has_text="Continue")
+        await continue_button.wait_for(state="visible", timeout=5000)
+        print("[System] Clicking Continue button...")
+        await continue_button.click(force=True)
+
+        # Check 1: "I Agree"
+        try:
+            i_agree_btn = page.locator("button", has_text="I Agree")
+            await i_agree_btn.wait_for(state="visible", timeout=2000)
+            await i_agree_btn.click()
+            print("[System] Dismissed 'I Agree' popup.")
+            await asyncio.sleep(0.5)
+        except: pass
+
+        # Check 2: Station Mismatch Accept Button ("Yes")
+        try:
+            yes_button = page.locator(".ui-confirmdialog-acceptbutton")
+            await yes_button.wait_for(state="visible", timeout=2000)
+            await yes_button.click()
+            print("[System] Handled station mismatch. Clicked 'Yes'.")
+            await asyncio.sleep(0.5)
+        except: pass
+
+        # Check 3: "OK" alerts
+        try:
+            ok_button = page.locator("button", has_text="OK")
+            await ok_button.wait_for(state="visible", timeout=2000)
+            await ok_button.click()
+            print("[System] Dismissed 'OK' alert.")
+            await asyncio.sleep(0.5)
+        except: pass
+
+        # Wait for loader to disappear
+        print("[System] Monitoring the main loading layout screen...")
+        try:
+            loader = page.locator("div.my-loading")
+            await loader.wait_for(state="hidden", timeout=95000)
+            print("[System] Loading screen cleared successfully!")
+            await asyncio.sleep(9)
+        except Exception as e:
+            print(f"[Warning] Loader tracking timed out or bypassed: {e}")
+
+        return 0
+
+    except Exception as e:
+        print(f"Error in initiatepayment function: {e}")
+        return -1
 
 async def normalbooking(name: str, age: str,number: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
     loginstatus=await login()
@@ -349,7 +454,21 @@ async def normalbooking(name: str, age: str,number: str, gender: str, preference
     
     passengerfillstatus=await passengerfill(name,age,number,gender,preference)
     if passengerfillstatus!=True:
-        return "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
+        return 
+    
+    if loginsession["browser"]:
+        await loginsession["browser"].close()
+    if loginsession["playwright"]:
+        await loginsession["playwright"].stop()
+    print("Bot exited cleanly. Over to you!")
+
+    "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
+    '''print("The bot has paused. Please review the form and click 'Continue' manually.")
+    await asyncio.Event().wait()'''
+
+    #initiatepaymentstatus=await initiatepayment()
+
+
 
 if __name__=="__main__":
     asyncio.run(normalbooking("Sreeram V Gopal","20","9020802929","Male","Lower","16127","Ernakulam","Aluva","31-05-2026","SL"))
