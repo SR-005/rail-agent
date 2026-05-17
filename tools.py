@@ -242,7 +242,7 @@ async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
         return True
 
     except Exception as e:
-        print(f"An Error Occured {e}")
+        print("Error in searchfill function ", e)
         return False
 
 async def gettrain(trainnumber: str):
@@ -287,7 +287,7 @@ async def gettobooking(traincard, coach: str, date: str):
         return True
 
     except Exception as e:
-        print("Error!! ", e)
+        print("Error in gettobooking function ", e)
         return False
 
 async def passengerfill(name: str, age: str, number: str, gender: str, preference: str):
@@ -315,12 +315,12 @@ async def passengerfill(name: str, age: str, number: str, gender: str, preferenc
         await page.keyboard.press("Backspace")
         await nameinput.type(number)
         await asyncio.sleep(4)
+        
+        return True
 
-
-
-    except:
-        pass
-    return 0
+    except Exception as e:
+        print("Error in passengerfill function ", e)
+        return False
 
 
 async def normalbooking(name: str, age: str,number: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
@@ -347,7 +347,9 @@ async def normalbooking(name: str, age: str,number: str, gender: str, preference
     if getbooking==False:
         return "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
     
-    await passengerfill(name,age,number,gender,preference)
+    passengerfillstatus=await passengerfill(name,age,number,gender,preference)
+    if passengerfillstatus!=True:
+        return "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
 
 if __name__=="__main__":
-    asyncio.run(normalbooking("Sreeram V Gopal","20","9020802929","Male","Lower","16127","Ernakulam","Aluva","15-04-2026","SL"))
+    asyncio.run(normalbooking("Sreeram V Gopal","20","9020802929","Male","Lower","16127","Ernakulam","Aluva","31-05-2026","SL"))
