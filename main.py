@@ -93,7 +93,10 @@ async def main():
 
         #exit the chat loop
         if userinput.lower() in ["exit", "quit"]:
+            print("Shutting down RailAgent. All background trackers will be stopped. Goodbye!")
             break
+
+        print("Agent is thinking...")
 
         chathistory.append({"role": "user", "content": userinput})
         result=await agent.ainvoke({"messages": chathistory})
