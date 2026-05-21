@@ -4,6 +4,7 @@ import subprocess
 import re
 import datetime
 from dotenv import load_dotenv
+import winsound
 from playwright.async_api import async_playwright
 
 load_dotenv()
@@ -169,12 +170,43 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
         "\n- 2-Tier AC (2A): AVAILABLE 01"
     )
 
-def trackstatus(trainnumber: str) -> str:
-    print(f"Monitoring train #{trainnumber}...")
-    return (
-        f"I have started the background agent to watch train {trainnumber}. "
-        "I will notify you the moment a seat opens up."
-    )
+async def trackstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, interval: int = 15) -> str:
+    print(f"Background monitoring started for Train {trainnumber} ({coach}). Checking every {interval} mins...")
+
+    while True:
+        try:
+            results=await checkseats(trainnumber, fromstation, tostation, date)
+            resultlist=results.split('\n') if isinstance(results, str) else results
+            seatfound=False
+            currentstatus="Not Found"
+
+            for line in resultlist:
+                line=line.strip()
+                if line.startswith(f"{coach}:"):    
+                    parts=line.split("|")
+                    if len(parts)>=2:
+                        currentstatus=parts[1].strip().upper()
+                        
+                        if ("AVAILABLE" in currentstatus or "AVL" in currentstatus) and "NOT AVAILABLE" not in currentstatus:
+                            seatfound=True
+                    break
+
+            if seatfound:
+                print("\n"+"!!"*20)
+                print(f"    SEAT ALERT: TRAIN {trainnumber} - {coach} IS {current_status}!    ")
+                print("!!"*20+"\n")
+                
+                # Play a loud beep to wake you up
+                for _ in range(5):
+                    winsound.Beep(1000, 500) 
+                    await asyncio.sleep(0.1)
+                    break 
+            else:
+                print(f"[Tracker] Train {trainnumber} ({coach}) status: '{currentstatus}'. Sleeping for {interval} mins...")
+        except Exception as e:
+            print(f"[Tracker] Error while tracking seats: {e}")
+
+        await asyncio.sleep(interval*60)
 
 
 #Book the Train
@@ -409,6 +441,7 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
     print("═"*50 + "\n")
 
     return True
+
 
 
 if __name__=="__main__":
