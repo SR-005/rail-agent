@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_core.tools import Tool, StructuredTool
 from langchain_google_genai import ChatGoogleGenerativeAI
-from tools import searchtrains, trackstatus, checkseats
-from models import TrainSearchInput, CheckSeatInput
+from tools import searchtrains, trackstatus, checkseats, normalbooking
+from models import TrainSearchInput, CheckSeatInput, BookingInput
 
 load_dotenv()
 
@@ -41,7 +41,18 @@ def build_agent():
             ),
             args_schema=CheckSeatInput),
 
-        StructuredTool.from_function(name="TrackStatus", func=None, coroutine=trackstatus, description="Track a train number and notify when a seat opens up.")
+        StructuredTool.from_function(name="TrackStatus", func=None, coroutine=trackstatus, description="Track a train number and notify when a seat opens up."),
+
+        StructuredTool.from_function(name="BookTrainTicket", func=None, coroutine=normalbooking, args_schema=BookingInput,
+            description=(
+                "Use this tool to automate the IRCTC train ticket booking process up to the passenger details page. "
+                "CRITICAL: Do NOT execute this tool unless you have explicitly collected ALL 9 required parameters from the user: "
+                "passenger name, age, gender, berth preference, 5-digit train number, "
+                "source station, destination station, travel date (must be in DD-MM-YYYY format), and coach class (e.g., SL, 3A, 2A). "
+                "If any of these details are missing, you MUST ask the user to provide them. "
+                "Once executed successfully, explicitly tell the user to check the open browser window to manually enter their mobile number and proceed to payment."
+            )
+        )
     ]
     
     #giving context of current date to the agent

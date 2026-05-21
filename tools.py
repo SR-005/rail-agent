@@ -177,6 +177,7 @@ def trackstatus(trainnumber: str) -> str:
     )
 
 
+#Book the Train
 async def login():
     playwright=await async_playwright().start()
 
@@ -322,7 +323,7 @@ async def gettobooking(traincard, coach: str, date: str):
         print("Error in gettobooking function ", e)
         return False
 
-async def passengerfill(name: str, age: str, number: str, gender: str, preference: str):
+async def passengerfill(name: str, age: str, gender: str, preference: str):
     page = loginsession["page"]
     try:
         print(f"Filling the Details of {name}, {age}, {gender}, {preference}")
@@ -351,12 +352,12 @@ async def passengerfill(name: str, age: str, number: str, gender: str, preferenc
         await asyncio.sleep(1)
 
         # Mobile Number Input
-        mobileinput = page.locator('#mobileNumber')
+        '''mobileinput = page.locator('#mobileNumber')
         await mobileinput.click()
         await page.keyboard.press("Control+A")
         await page.keyboard.press("Backspace")
         await mobileinput.type(number, delay=100)
-        await page.keyboard.press("Tab")
+        await page.keyboard.press("Tab")'''
         await asyncio.sleep(1)
         
         return True
@@ -365,70 +366,7 @@ async def passengerfill(name: str, age: str, number: str, gender: str, preferenc
         print("Error in passengerfill function ", e)
         return False
 
-async def initiatepayment():
-    page = loginsession["page"]
-    try:
-        # 🟢 FIX: Use [id="3"] instead of #3 to prevent the browser syntax error
-        radiobox = page.locator('p-radiobutton[id="3"]')
-        
-        print("[System] Scrolling to Payment Method option...")
-        await radiobox.scroll_into_view_if_needed()
-        
-        # Click the inner widget container to guarantee the PrimeNG event fires
-        print("[System] Selecting Credit/Debit/Net Banking option...")
-        await radiobox.locator('.ui-radiobutton').click()
-        await asyncio.sleep(1.5)
-
-        # Locate and click the Continue button
-        continue_button = page.locator("button.btnDefault.train_Search", has_text="Continue")
-        await continue_button.wait_for(state="visible", timeout=5000)
-        print("[System] Clicking Continue button...")
-        await continue_button.click(force=True)
-
-        # Check 1: "I Agree"
-        try:
-            i_agree_btn = page.locator("button", has_text="I Agree")
-            await i_agree_btn.wait_for(state="visible", timeout=2000)
-            await i_agree_btn.click()
-            print("[System] Dismissed 'I Agree' popup.")
-            await asyncio.sleep(0.5)
-        except: pass
-
-        # Check 2: Station Mismatch Accept Button ("Yes")
-        try:
-            yes_button = page.locator(".ui-confirmdialog-acceptbutton")
-            await yes_button.wait_for(state="visible", timeout=2000)
-            await yes_button.click()
-            print("[System] Handled station mismatch. Clicked 'Yes'.")
-            await asyncio.sleep(0.5)
-        except: pass
-
-        # Check 3: "OK" alerts
-        try:
-            ok_button = page.locator("button", has_text="OK")
-            await ok_button.wait_for(state="visible", timeout=2000)
-            await ok_button.click()
-            print("[System] Dismissed 'OK' alert.")
-            await asyncio.sleep(0.5)
-        except: pass
-
-        # Wait for loader to disappear
-        print("[System] Monitoring the main loading layout screen...")
-        try:
-            loader = page.locator("div.my-loading")
-            await loader.wait_for(state="hidden", timeout=95000)
-            print("[System] Loading screen cleared successfully!")
-            await asyncio.sleep(9)
-        except Exception as e:
-            print(f"[Warning] Loader tracking timed out or bypassed: {e}")
-
-        return 0
-
-    except Exception as e:
-        print(f"Error in initiatepayment function: {e}")
-        return -1
-
-async def normalbooking(name: str, age: str,number: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
+async def normalbooking(name: str, age: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
     loginstatus=await login()
     if not loginstatus:
         print("Login Unsuccessfull!! PLEASE TRY AGAIN")
@@ -452,23 +390,25 @@ async def normalbooking(name: str, age: str,number: str, gender: str, preference
     if getbooking==False:
         return "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
     
-    passengerfillstatus=await passengerfill(name,age,number,gender,preference)
+    passengerfillstatus=await passengerfill(name,age,gender,preference)
     if passengerfillstatus!=True:
-        return 
+        return "An Error Occured while filling the passenger details."
     
     if loginsession["browser"]:
         await loginsession["browser"].close()
     if loginsession["playwright"]:
         await loginsession["playwright"].stop()
-    print("Bot exited cleanly. Over to you!")
 
-    "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
-    '''print("The bot has paused. Please review the form and click 'Continue' manually.")
-    await asyncio.Event().wait()'''
+    print("\n" + "═"*50)
+    print("🎉 PASSENGER DETAILS FILLED SUCCESSFULLY! 🎉")
+    print("The bot has paused. Please go to the open browser and:")
+    print("  1. Enter the Passenger Mobile Number.")
+    print("  2. Select your Payment Method.")
+    print("  3. Click 'Continue' to proceed to the CAPTCHA page.")
+    print("═"*50 + "\n")
 
-    #initiatepaymentstatus=await initiatepayment()
-
+    return True
 
 
 if __name__=="__main__":
-    asyncio.run(normalbooking("Sreeram V Gopal","20","9020802929","Male","Lower","16127","Ernakulam","Aluva","31-05-2026","SL"))
+    asyncio.run(normalbooking("Sreeram V Gopal","20","9020802929","Male","Lower","16127","Ernakulam","Aluva","02-06-2026","SL"))
