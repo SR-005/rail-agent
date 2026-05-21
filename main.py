@@ -6,7 +6,7 @@ from langchain.agents import create_agent
 from langchain_core.tools import Tool, StructuredTool
 from langchain_google_genai import ChatGoogleGenerativeAI
 from tools import searchtrains, trackstatus, checkseats, normalbooking
-from models import TrainSearchInput, CheckSeatInput, BookingInput
+from models import TrainSearchInput, CheckSeatInput, TrackStatusInput, BookingInput
 
 load_dotenv()
 
@@ -41,7 +41,16 @@ def build_agent():
             ),
             args_schema=CheckSeatInput),
 
-        StructuredTool.from_function(name="TrackStatus", func=None, coroutine=trackstatus, description="Track a train number and notify when a seat opens up."),
+        StructuredTool.from_function(name="TrackStatus", func=None, coroutine=trackstatus, args_schema=TrackStatusInput,
+            description=(
+                "Use this tool to deploy a background agent that continuously monitors seat availability for a specific train. "
+                "CRITICAL: Do NOT execute this tool unless you have explicitly collected ALL 5 required parameters from the user: "
+                "the 5-digit train number, source station, destination station, travel date (must be strictly in DD-MM-YYYY format), "
+                "and coach class (e.g., SL, 3A, 2A). "
+                "If any of these details are missing, you MUST ask the user to provide the missing information first. "
+                "Once executed successfully, inform the user that the monitor is silently running in the background and will sound a loud audio alarm if a seat opens up."
+            )
+        ),
 
         StructuredTool.from_function(name="BookTrainTicket", func=None, coroutine=normalbooking, args_schema=BookingInput,
             description=(

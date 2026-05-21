@@ -12,6 +12,13 @@ class CheckSeatInput(BaseModel):
     tostation: str=Field(description="Re-use the destination station from the search.")
     date: str=Field(description="Re-use the travel date from the search (DD-MM-YYYY).")
 
+class TrackStatusInput(BaseModel):
+    trainnumber: str = Field(description="The 5-digit Indian Railways train number (e.g., '16127').")
+    fromstation: str = Field(description="Source station name (e.g., 'Ernakulam').")
+    tostation: str = Field(description="Destination station name (e.g., 'Aluva').")
+    date: str = Field(description="Travel date strictly in DD-MM-YYYY format.")
+    coach: str = Field(description="Coach class (e.g., 'SL', '3A', '2A').")
+
 class BookingInput(BaseModel):
     name: str = Field(description="Passenger full name")
     age: str = Field(description="Passenger age")
