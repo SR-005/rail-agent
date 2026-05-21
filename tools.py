@@ -202,6 +202,7 @@ async def login():
     print("[System] Connecting Playwright via CDP link...")
     try:
         browser = await playwright.chromium.connect_over_cdp("http://localhost:9222")
+        await asyncio.sleep(4)
     except Exception as e:
         print(f"❌ Connection Failed! {e}")
         return False
@@ -411,4 +412,4 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
 
 
 if __name__=="__main__":
-    asyncio.run(normalbooking("Sreeram V Gopal","20","9020802929","Male","Lower","16127","Ernakulam","Aluva","02-06-2026","SL"))
+    asyncio.run(normalbooking("Sreeram V Gopal","20","Male","Lower","16127","Ernakulam","Aluva","02-06-2026","SL"))
