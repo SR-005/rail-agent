@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 import subprocess
 import re
 import datetime
@@ -203,6 +204,9 @@ async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date
                 print("\n"+"!!"*20)
                 print(f"    SEAT ALERT: TRAIN {trainnumber} - {coach} IS {currentstatus}!")
                 print("!!"*20+"\n")
+
+                sys.stdout.write("👤 You: ")    #for new user chat to appear
+                sys.stdout.flush()
                 
                 # Play a loud beep to wake you up
                 for _ in range(5):
@@ -211,6 +215,8 @@ async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date
                     break 
             else:
                 print(f"[Tracker] Train {trainnumber} ({coach}) status: '{currentstatus}'. Sleeping for {interval} mins...")
+                sys.stdout.write("👤 You: ")    #for new user chat to appear
+                sys.stdout.flush()
         except Exception as e:
             print(f"[Tracker] Error while tracking seats: {e}")
 
