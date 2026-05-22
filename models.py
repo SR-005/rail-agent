@@ -20,10 +20,10 @@ class TrackStatusInput(BaseModel):
     coach: str = Field(description="Coach class (e.g., 'SL', '3A', '2A').")
 
 class BookingInput(BaseModel):
-    name: str = Field(description="Passenger full name")
+    name: str = Field(description="Passenger full name. MUST be formatted in Title Case (e.g., 'Sreeram V Gopal').")
     age: str = Field(description="Passenger age")
-    gender: str = Field(description="Passenger gender: Male, Female, or Transgender")
-    preference: str = Field(description="Berth preference: Lower, Middle, Upper, etc.")
+    gender: str = Field(description="Passenger gender: Male or Female")
+    preference: str = Field(description="Berth preference: Lower, Middle, Upper, Side Lower, Side Upper etc.")
     trainnumber: str = Field(description="5-digit train number")
     fromstation: str = Field(description="Source station name (e.g., Ernakulam)")
     tostation: str = Field(description="Destination station name (e.g., Aluva)")

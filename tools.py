@@ -205,7 +205,7 @@ async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date
                 print(f"    SEAT ALERT: TRAIN {trainnumber} - {coach} IS {currentstatus}!")
                 print("!!"*20+"\n")
 
-                sys.stdout.write("👤 You: ")    #for new user chat to appear
+                sys.stdout.write("You: ")    #for new user chat to appear
                 sys.stdout.flush()
                 
                 # Play a loud beep to wake you up
@@ -215,7 +215,7 @@ async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date
                     break 
             else:
                 print(f"[Tracker] Train {trainnumber} ({coach}) status: '{currentstatus}'. Sleeping for {interval} mins...")
-                sys.stdout.write("👤 You: ")    #for new user chat to appear
+                sys.stdout.write("You: ")    #for new user chat to appear
                 sys.stdout.flush()
         except Exception as e:
             print(f"[Tracker] Error while tracking seats: {e}")
@@ -372,6 +372,13 @@ async def gettobooking(traincard, coach: str, date: str):
 
 async def passengerfill(name: str, age: str, gender: str, preference: str):
     page = loginsession["page"]
+
+    preference=preference.strip()
+    if preference.lower() in ["none", "no", "no preference", "any", "na"]:
+        preference="None"
+    else:
+        preference=preference.title()
+
     try:
         print(f"Filling the Details of {name}, {age}, {gender}, {preference}")
         
@@ -395,7 +402,8 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
 
         # Dropdowns
         await page.select_option('select[formcontrolname="passengerGender"]', label=gender)
-        await page.select_option('select[formcontrolname="passengerBerthChoice"]', label=preference)
+        if preference!="None":
+            await page.select_option('select[formcontrolname="passengerBerthChoice"]', label=preference)
         await asyncio.sleep(1)
 
         # Mobile Number Input
