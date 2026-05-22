@@ -98,7 +98,7 @@ async def main():
     chathistory=[]
     print("\nWELCOME TO RAIL AGENT. How can we help!?\n")
     while True:
-        userinput=input("\nYou: ")
+        userinput=await asyncio.to_thread(input,"\nYou: ")
 
         #exit the chat loop
         if userinput.lower() in ["exit", "quit"]:

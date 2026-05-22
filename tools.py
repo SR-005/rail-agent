@@ -170,7 +170,15 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
         "\n- 2-Tier AC (2A): AVAILABLE 01"
     )
 
-async def trackstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, interval: int = 15) -> str:
+async def trackstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str) -> str:
+    asyncio.create_task(monitorstatus(trainnumber, fromstation, tostation, date, coach))
+    return (
+        f"Success! I have deployed a background agent to monitor Train {trainnumber} "
+        f"for {coach} class. It will check silently every 3 minutes."
+    )
+
+#threaded monitor function
+async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, interval: int = 3) -> str:
     print(f"Background monitoring started for Train {trainnumber} ({coach}). Checking every {interval} mins...")
 
     while True:
@@ -193,7 +201,7 @@ async def trackstatus(trainnumber: str, fromstation: str, tostation: str, date: 
 
             if seatfound:
                 print("\n"+"!!"*20)
-                print(f"    SEAT ALERT: TRAIN {trainnumber} - {coach} IS {current_status}!    ")
+                print(f"    SEAT ALERT: TRAIN {trainnumber} - {coach} IS {currentstatus}!")
                 print("!!"*20+"\n")
                 
                 # Play a loud beep to wake you up
