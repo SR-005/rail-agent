@@ -231,16 +231,19 @@ async def login():
     chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
     user_data_dir = r"C:\chrome_dev_profile"
     
+    #opening the chrome window for execution
     try:
         # DETACHED_PROCESS (0x00000008) cuts the parent-child bond on Windows
         subprocess.Popen(
-            [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--start-maximized"],
+            [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--window-size=412,915",               #"--start-maximized"
+                "--user-agent=Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+            ],      
             creationflags=0x00000008 if os.name == 'nt' else 0,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-        # Give Chrome a quick moment to spin up its socket server
-        await asyncio.sleep(2)
+        await asyncio.sleep(2)      # Give Chrome a quick moment to spin up its socket server
+
     except Exception as e:
         print(f"❌ Failed to launch Chrome automatically: {e}")
         return False
@@ -255,21 +258,36 @@ async def login():
     
     context=browser.contexts[0]
     page=context.pages[0] if context.pages else await context.new_page()
-    
-    '''browser=await playwright.chromium.launch(headless=False,args=[f"--window-size=1920,1080"])
-    context=await browser.new_context(no_viewport=True)
-    await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    page=await context.new_page()'''
 
-
+    await page.set_viewport_size({"width": 412, "height": 915})
 
     loginsession["playwright"]=playwright
     loginsession["browser"]=browser
     loginsession["page"]=page
 
     await page.goto("https://www.irctc.co.in/nget/train-search")
+    await page.wait_for_load_state("domcontentloaded")
     await asyncio.sleep(5)
-    await page.click("text=LOGIN / REGISTER")
+
+    windowwidth=await page.evaluate("window.innerWidth")
+    ismobile=windowwidth < 768
+
+    if ismobile:                   #for mobile cases
+        try:
+            print("[System] Mobile viewport detected. Opening sidebar menu...")
+            hamburgermenu=page.locator(".moblogo .fa-align-justify").first
+            await hamburgermenu.click(force=True)
+            await asyncio.sleep(4)
+        except Exception as e:
+            print(f"Failed to open mobile menu: {e}")
+
+    else:
+        print("[System] Desktop viewport detected (Width: {windowwidth}px)")
+
+    loginbutton=page.locator("button.search_btn", has_text="LOGIN / REGISTER").first
+    await loginbutton.wait_for(state="attached", timeout=5000)
+    await loginbutton.evaluate("node => node.click()")
+    print("[System] Clicked LOGIN / REGISTER natively.")
 
     await page.fill('input[formcontrolname="userid"]', os.getenv("IRCTCUSER"))
     await page.fill('input[formcontrolname="password"]', os.getenv("IRCTCPASS"))
@@ -467,4 +485,5 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
 
 
 if __name__=="__main__":
-    asyncio.run(normalbooking("Sreeram V Gopal","20","Male","Lower","16127","Ernakulam","Aluva","02-06-2026","SL"))
+    #asyncio.run(normalbooking("Sreeram V Gopal","20","Male","Lower","16127","Ernakulam","Aluva","02-06-2026","SL"))
+    asyncio.run(login())
