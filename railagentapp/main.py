@@ -92,9 +92,8 @@ def build_agent():
         )
     return agent
 
-
+railagent=build_agent()
 async def main():
-    agent=build_agent()
     chathistory=[]
     print("\nWELCOME TO RAIL AGENT. How can we help!?\n")
     while True:
@@ -108,7 +107,7 @@ async def main():
         print("Agent is thinking...")
 
         chathistory.append({"role": "user", "content": userinput})
-        result=await agent.ainvoke({"messages": chathistory})
+        result=await railagent.ainvoke({"messages": chathistory})
         agentreply=result['messages'][-1]
         
         #formating the output text given by LLM

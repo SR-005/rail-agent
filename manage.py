@@ -2,10 +2,15 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+import asyncio
 
 
 def main():
     """Run administrative tasks."""
+
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'railagent.settings')
     try:
         from django.core.management import execute_from_command_line
