@@ -270,7 +270,7 @@ async def login():
     await asyncio.sleep(5)
 
     windowwidth=await page.evaluate("window.innerWidth")
-    ismobile=windowwidth < 768
+    ismobile=windowwidth<768
 
     if ismobile:                   #for mobile cases
         try:
@@ -287,7 +287,6 @@ async def login():
     loginbutton=page.locator("button.search_btn", has_text="LOGIN / REGISTER").first
     await loginbutton.wait_for(state="attached", timeout=5000)
     await loginbutton.evaluate("node => node.click()")
-    print("[System] Clicked LOGIN / REGISTER natively.")
 
     await page.fill('input[formcontrolname="userid"]', os.getenv("IRCTCUSER"))
     await page.fill('input[formcontrolname="password"]', os.getenv("IRCTCPASS"))
