@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_core.tools import Tool, StructuredTool
 from langchain_google_genai import ChatGoogleGenerativeAI
-from tools import searchtrains, trackstatus, checkseats, normalbooking
+from railagentapp.tools import searchtrains, trackstatus, checkseats, normalbooking
 from models import TrainSearchInput, CheckSeatInput, TrackStatusInput, BookingInput
 
 load_dotenv()

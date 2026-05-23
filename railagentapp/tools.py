@@ -10,6 +10,16 @@ from playwright.async_api import async_playwright
 
 load_dotenv()
 
+
+
+# Ensure Windows uses the Proactor event loop so subprocess APIs work
+if sys.platform.startswith("win"):
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        # If setting the policy fails for any reason, continue without crashing
+        pass
+
 loginsession={
     "playwright": None,
     "browser": None,

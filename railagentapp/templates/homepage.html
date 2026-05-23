@@ -4,10 +4,29 @@
     <title>RailAgent UI</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
-        #chat-log { width: 100%; height: 400px; border: 1px solid #ccc; background: white; padding: 10px; overflow-y: scroll; margin-bottom: 10px; border-radius: 5px; }
-        .user-msg { color: #0056b3; font-weight: bold; margin-bottom: 10px;}
-        .bot-msg { color: #28a745; margin-bottom: 10px;}
-        .sys-msg { color: #6c757d; font-style: italic; margin-bottom: 10px;}
+        #chat-log { 
+            width: 100%; 
+            height: 500px; 
+            border: 1px solid #ccc; 
+            background: white; 
+            padding: 15px; 
+            overflow-y: scroll; 
+            margin-bottom: 10px; 
+            border-radius: 5px; 
+        }
+        
+        /* 🟢 THE CSS FIX: Applied directly to the message blocks */
+        .user-msg, .bot-msg, .sys-msg {
+            margin-bottom: 15px;
+            line-height: 1.5;
+            white-space: pre-wrap; /* Forces the browser to respect spaces and breaks */
+            word-wrap: break-word;
+        }
+
+        .user-msg { color: #0056b3; font-weight: bold; }
+        .bot-msg { color: #28a745; }
+        .sys-msg { color: #6c757d; font-style: italic; }
+        
         input[type="text"] { width: 80%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
         button { padding: 10px 20px; border-radius: 5px; background: #0056b3; color: white; border: none; cursor: pointer; }
     </style>
@@ -21,52 +40,44 @@
     <button id="chat-message-submit">Send</button>
 
     <script>
-        // 1. OPEN THE WALKIE-TALKIE
-        // We dynamically get the current URL and change http:// to ws://
-        const chatSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/railagentapp/'
-        );
-
+        const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/railagentapp/');
         const chatLog = document.querySelector('#chat-log');
 
-        // 2. LISTEN FOR MESSAGES FROM DJANGO
         chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data); // Decode the JSON
+            const data = JSON.parse(e.data);
             let messageClass = 'bot-msg';
             
             if (data.type === 'system' || data.type === 'status') messageClass = 'sys-msg';
-            if (data.type === 'error') messageClass = 'sys-msg'; // Could make this red later
+            if (data.type === 'error') messageClass = 'sys-msg';
 
-            // Print the message to the screen
-            chatLog.innerHTML += `<div class="${messageClass}">${data.message}</div>`;
-            chatLog.scrollTop = chatLog.scrollHeight; // Auto-scroll to bottom
+            // 🟢 THE JS FIX: Catch all newline variants and convert Gemini's **bold** text
+            let formattedMessage = data.message;
+            
+            // 1. Convert newlines to HTML breaks (handles both \n and \r\n)
+            formattedMessage = formattedMessage.replace(/\r?\n/g, '<br>');
+            
+            // 2. Bonus: Convert Gemini's markdown **text** to HTML <b>text</b>
+            formattedMessage = formattedMessage.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+            chatLog.innerHTML += `<div class="${messageClass}">${formattedMessage}</div>`;
+            chatLog.scrollTop = chatLog.scrollHeight; 
         };
 
-        // If the server hangs up
         chatSocket.onclose = function(e) {
             console.error('Chat socket closed unexpectedly');
             chatLog.innerHTML += `<div class="sys-msg">❌ Connection to server lost.</div>`;
         };
 
-        // 3. SEND MESSAGES TO DJANGO
         document.querySelector('#chat-message-submit').onclick = function(e) {
             const messageInputDom = document.querySelector('#chat-message-input');
             const message = messageInputDom.value;
-            
             if (message.trim() === "") return;
 
-            // Print the user's message locally so they see what they typed
             chatLog.innerHTML += `<div class="user-msg">👤 You: ${message}</div>`;
-            
-            // Send the text across the WebSocket as a JSON string
-            chatSocket.send(JSON.stringify({
-                'message': message
-            }));
-            
-            messageInputDom.value = ''; // Clear the input box
+            chatSocket.send(JSON.stringify({'message': message}));
+            messageInputDom.value = ''; 
         };
 
-        // Allow pressing "Enter" to send
         document.querySelector('#chat-message-input').onkeyup = function(e) {
             if (e.keyCode === 13) { document.querySelector('#chat-message-submit').click(); }
         };
