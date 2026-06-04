@@ -233,6 +233,10 @@ async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date
         await asyncio.sleep(interval*60)
 
 
+
+
+
+
 #Book the Train
 async def login():
     playwright=await async_playwright().start()
@@ -492,6 +496,12 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
     return True
 
 
+
+
+
+'''async def scheduletatkal(name: str, age: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
+
+'''
 async def tatkalsearchfill(fromcode: str, tocode: str, date: str, coach: str):
     page=loginsession["page"]
     print(f"[System] Filling search: {fromcode} to {tocode} for {date}")
@@ -540,33 +550,82 @@ async def tatkalsearchfill(fromcode: str, tocode: str, date: str, coach: str):
 
 
 async def tatkalbooking(name: str, age: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
-    
-    
-    loginstatus=await login()
-    if not loginstatus:
-        print("Login Unsuccessfull!! PLEASE TRY AGAIN")
-    else:
-        print("Login Successfull")
+    try:
+        journeydate=datetime.datetime.strptime(date,"%d-%m-%Y")
+        bookingdate=journeydate-datetime.timedelta(days=1)
 
-    page=loginsession["page"]
-    if not page:
-        return "Error: No active browser session found."
-    
-    fromcode=STATIONCODES.get(fromstation.lower())
-    tocode=STATIONCODES.get(tostation.lower())
-    date=date.replace("-", "/")
+        isac = coach.upper() in ["1A", "2A", "3A", "CC", "EC", "3E", "EV"]
+        openinghour = 10 if isac else 11
 
-    agentstatus=await tatkalsearchfill(fromcode,tocode,date,coach)
-    if agentstatus==False:
-        return "An Error Occured- Could not get to the Search Results page of IRCTC!"
+        targetopeningtime=bookingdate.replace(hour=openinghour,minute=0,second=0,microsecond=0)
+        logintime=targetopeningtime-datetime.timedelta(minutes=2)
 
-    traincard=await gettrain(trainnumber)
-    getbooking=await gettobooking(traincard,coach,date)
-    if getbooking==False:
-        return "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
+        now=datetime.datetime.now()
+        if now<logintime:
+            waitseconds=(logintime-now).total_seconds()
+            print(f"\n[Tatkal Sniper] Sleeping for {int(waitseconds)} seconds. Waking up at {logintime.strftime('%I:%M %p')}...")
+            await asyncio.sleep(waitseconds)
+        
+        print(f"\n[Tatkal Sniper] Waking up! Executing Phase 1: Login & Search...")
+
+        loginstatus=await login()
+        if not loginstatus:
+            print("Login Unsuccessfull!! PLEASE TRY AGAIN")
+        else:
+            print("Login Successfull")
+
+        page=loginsession["page"]
+        if not page:
+            return "Error: No active browser session found."
+        
+        loginstatus=await login()
+        if not loginstatus:
+            print("Login Unsuccessfull!! PLEASE TRY AGAIN")
+        else:
+            print("Login Successfull")
+
+        page=loginsession["page"]
+        if not page:
+            return "Error: No active browser session found."
+        
+        fromcode=STATIONCODES.get(fromstation.lower())
+        tocode=STATIONCODES.get(tostation.lower())
+        date=date.replace("-", "/")
+
+        agentstatus=await tatkalsearchfill(fromcode,tocode,date,coach)
+        if agentstatus==False:
+            return "An Error Occured- Could not get to the Search Results page of IRCTC!"
+        
+        traincard=await gettrain(trainnumber)
+        now=datetime.datetime.now()
+        if now<targetopeningtime:
+            waitseconds=(targetopeningtime-now).total_seconds()
+            print(f"[Tatkal Sniper] Ready. Waiting {waitseconds} seconds for EXACTLY {openinghour}:00:00...")
+            await asyncio.sleep(waitseconds)
+
+        
+        page=loginsession["page"]
+        maxretries = 15
+        for attempt in range(maxretries):
+            try:
+                print(f"[Tatkal Sniper] Attempt {attempt}: Executing full page reload...")
+                await page.reload(wait_until="domcontentloaded")
+                await asyncio.sleep(2)
+
+                getbooking=await gettobooking(traincard,coach,date)
+                if getbooking==False:
+                    return "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
+                
+                passengerfillstatus=await passengerfill(name,age,gender,preference)
+            except Exception as e:
+                print(f"[Tatkal Sniper] Refresh attempt {attempt} failed, retrying... Error: {e}")
+
+            return True
+    except Exception as e:
+            print("Error in Tatkal Booking function ", e)
+            return True
     
-    passengerfillstatus=await passengerfill(name,age,gender,preference)
-    if passengerfillstatus!=True:
+    '''if passengerfillstatus!=True:
         return "An Error Occured while filling the passenger details."
     
     if loginsession["browser"]:
@@ -582,7 +641,7 @@ async def tatkalbooking(name: str, age: str, gender: str, preference: str, train
     print("  3. Click 'Continue' to proceed to the CAPTCHA page.")
     print("═"*50 + "\n")
 
-    return True
+    return True'''
 
 
 if __name__=="__main__":
