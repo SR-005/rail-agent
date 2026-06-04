@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_core.tools import Tool, StructuredTool
 from langchain_google_genai import ChatGoogleGenerativeAI
-from railagentapp.tools import searchtrains, trackstatus, checkseats, normalbooking
+from railagentapp.tools import searchtrains, trackstatus, checkseats, normalbooking, tatkalbooking
 from models import TrainSearchInput, CheckSeatInput, TrackStatusInput, BookingInput
 
 load_dotenv()
@@ -61,6 +61,18 @@ def build_agent():
                 "If any of these details are missing, you MUST ask the user to provide them. "
                 "Once executed successfully, explicitly tell the user to check the open browser window to manually enter their mobile number and proceed to payment."
             )
+        ),
+
+        StructuredTool.from_function(name="BookTatkalTicket", func=None, coroutine=tatkalbooking, args_schema=BookingInput,
+            description=(
+                "Use this tool ONLY when the user explicitly asks to book a 'Tatkal' ticket. "
+                "It automates the IRCTC Tatkal train ticket booking process up to the passenger details page. "
+                "CRITICAL: Do NOT execute this tool unless you have explicitly collected ALL 9 required parameters from the user: "
+                "passenger name, age, gender, berth preference, 5-digit train number, "
+                "source station, destination station, travel date (must be in DD-MM-YYYY format), and coach class (e.g., SL, 3A, 2A). "
+                "If any of these details are missing, you MUST ask the user to provide them. "
+                "Once executed successfully, explicitly tell the user to check the open browser window."
+            )
         )
     ]
     
@@ -82,6 +94,7 @@ def build_agent():
         "\n5. FORMATTING: Present search results as a CLEAR NUMBERED LIST (e.g., 1. [Number] [Name])."
         "\n6. NEVER use general knowledge about Indian Railways. Only use numbers and stations present in this chat history."
         "\n7. If you call CheckSeats, you are FORBIDDEN from calling SearchTrains immediately after unless the user changed the city names."
+        "\n8. TATKAL BOOKINGS: If the user specifically asks to book via 'Tatkal', you MUST use the BookTatkalTicket tool instead of the regular BookTrainTicket tool."
         
         "\n\nOPERATIONAL PROTOCOL:"
         "\n- PHASE 1 (Discovery): User mentions two cities -> Call SearchTrains."

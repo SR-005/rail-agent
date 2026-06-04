@@ -492,6 +492,98 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
     return True
 
 
+async def tatkalsearchfill(fromcode: str, tocode: str, date: str, coach: str):
+    page=loginsession["page"]
+    print(f"[System] Filling search: {fromcode} to {tocode} for {date}")
+
+    try:
+        frominput=page.locator("#origin input")
+        await frominput.fill(fromcode)
+        await asyncio.sleep(1.5)
+        await page.keyboard.press("Enter")
+
+        toinput=page.locator("#destination input")
+        await toinput.fill(tocode)
+        await asyncio.sleep(1.5)
+        await page.keyboard.press("Enter")
+
+        dateinput=page.locator("#jDate input")
+        await dateinput.click()
+        await page.keyboard.press("Control+A")
+        await page.keyboard.press("Backspace")
+        await dateinput.type(date,delay=50)
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Enter")
+
+        if coach!="All Classes":
+            await page.click('#journeyClass')
+            await page.click(f"p-dropdownitem >> text={coach}")
+
+        await page.locator("#journeyQuota").click()
+    
+        await page.wait_for_timeout(500) 
+        await page.get_by_text("TATKAL", exact=True).click()
+        print("[System] Quota changed to TATKAL.")
+        
+        searchbutton=page.locator("button.search_btn", has_text="Search Trains")
+        await searchbutton.click(force=True)
+
+        print("SUCCESS: Navigated to Results Page.")
+
+        return True
+
+    except Exception as e:
+        print("Error in searchfill function ", e)
+        return False
+
+
+async def tatkalbooking(name: str, age: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
+    
+    
+    loginstatus=await login()
+    if not loginstatus:
+        print("Login Unsuccessfull!! PLEASE TRY AGAIN")
+    else:
+        print("Login Successfull")
+
+    page=loginsession["page"]
+    if not page:
+        return "Error: No active browser session found."
+    
+    fromcode=STATIONCODES.get(fromstation.lower())
+    tocode=STATIONCODES.get(tostation.lower())
+    date=date.replace("-", "/")
+
+    agentstatus=await tatkalsearchfill(fromcode,tocode,date,coach)
+    if agentstatus==False:
+        return "An Error Occured- Could not get to the Search Results page of IRCTC!"
+
+    traincard=await gettrain(trainnumber)
+    getbooking=await gettobooking(traincard,coach,date)
+    if getbooking==False:
+        return "An Error Occured- Could not get to the Journey Booking page of IRCTC!"
+    
+    passengerfillstatus=await passengerfill(name,age,gender,preference)
+    if passengerfillstatus!=True:
+        return "An Error Occured while filling the passenger details."
+    
+    if loginsession["browser"]:
+        await loginsession["browser"].close()
+    if loginsession["playwright"]:
+        await loginsession["playwright"].stop()
+
+    print("\n" + "═"*50)
+    print("🎉 PASSENGER DETAILS FILLED SUCCESSFULLY! 🎉")
+    print("The bot has paused. Please go to the open browser and:")
+    print("  1. Enter the Passenger Mobile Number.")
+    print("  2. Select your Payment Method.")
+    print("  3. Click 'Continue' to proceed to the CAPTCHA page.")
+    print("═"*50 + "\n")
+
+    return True
+
 
 if __name__=="__main__":
     #asyncio.run(normalbooking("Sreeram V Gopal","20","Male","Lower","16127","Ernakulam","Aluva","02-06-2026","SL"))
