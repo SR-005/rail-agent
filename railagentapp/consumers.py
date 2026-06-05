@@ -4,7 +4,7 @@ from channels.db import database_sync_to_async
 from railagentapp.models import PassengerProfile 
 from railagentapp.main import railagent 
 
-class ChatConsumer(AsyncWebsocketConsumer):
+class RailAgentConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user=self.scope["user"]
 
@@ -29,7 +29,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
             },
             {
-                "role": "model",
+                "role": "ai",
                 "content": "Acknowledged. I have memorized the user's details and will use them automatically for bookings."
             }
         ]
@@ -64,10 +64,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             
             if isinstance(agentreply.content, str):
                 cleantext=agentreply.content
+            elif isinstance(agentreply.content, list):
+                # Dig into the list and extract only the 'text' values, ignoring signatures/metadata
+                cleantext="".join(
+                    block["text"] for block in agentreply.content 
+                    if isinstance(block, dict) and "text" in block
+                )
             else:
                 cleantext=str(agentreply.content)
 
-            self.chat_history.append({"role": "model", "content": cleantext})
+            self.chat_history.append({"role": "ai", "content": cleantext})
 
             await self.send(text_data=json.dumps({
                 'type': 'bot',

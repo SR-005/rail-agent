@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head><title>Register - RailAgent</title></head>
+<body style="font-family: Arial; padding: 50px; text-align: center; background-color: #f4f4f9;">
+    <h2>🚂 Register for RailAgent</h2>
+    <form method="POST" style="background: white; padding: 20px; border-radius: 8px; display: inline-block; border: 1px solid #ccc; text-align: left;">
+        {% csrf_token %}
+        <p style="color: red;">{{ error }}</p>
+        
+        <h3>Account Details</h3>
+        <input type="text" name="username" placeholder="Choose Username" required style="padding: 10px; width: 100%; margin-bottom: 10px;">
+        <input type="password" name="password" placeholder="Choose Password" required style="padding: 10px; width: 100%; margin-bottom: 10px;">
+        
+        <hr>
+        <h3>IRCTC Passenger Profile</h3>
+        <small style="color: gray;">These details will be used automatically for your bookings.</small><br><br>
+        
+        <input type="text" name="full_name" placeholder="Full Name (As on ID)" required style="padding: 10px; width: 100%; margin-bottom: 10px;">
+        <input type="number" name="age" placeholder="Age" required style="padding: 10px; width: 100%; margin-bottom: 10px;">
+        
+        <select name="gender" required style="padding: 10px; width: 100%; margin-bottom: 10px;">
+            <option value="" disabled selected>Select Gender</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+            <option value="T">Transgender</option>
+        </select>
+        
+        <select name="berth" required style="padding: 10px; width: 100%; margin-bottom: 10px;">
+            <option value="NO">No Preference</option>
+            <option value="LB">Lower</option>
+            <option value="MB">Middle</option>
+            <option value="UB">Upper</option>
+            <option value="SL">Side Lower</option>
+            <option value="SU">Side Upper</option>
+        </select>
+        
+        <button type="submit" style="padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; width: 100%;">Create Account</button>
+    </form>
+    <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+</body>
+</html>
