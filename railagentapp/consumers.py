@@ -42,11 +42,17 @@ class RailAgentConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_passenger_profile(self):
-        try:
-            profile = PassengerProfile.objects.get(user=self.user)
-            return f"Name: {profile.full_name}, Age: {profile.age}, Gender: {profile.gender}, Berth: {profile.berth_preference}"
-        except PassengerProfile.DoesNotExist:
-            return "No profile details found."
+        passengers = PassengerProfile.objects.filter(user=self.user)
+        
+        if not passengers.exists():
+            return "No passenger details saved. Ask the user to add passengers via their Profile dashboard."
+
+        profile_list = "Here is the master list of saved passengers for this user:\n"
+        for p in passengers:
+            profile_list += f"- Name: {p.full_name}, Age: {p.age}, Gender: {p.gender}, Berth: {p.berth_preference}\n"
+            
+        profile_list += "\nIf the user says 'book it for me', use the first passenger. If they specify a name, use that specific passenger from this list."
+        return profile_list
 
     async def receive(self, text_data):
         data = json.loads(text_data)

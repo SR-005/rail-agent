@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -54,3 +54,27 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+@login_required(login_url='/login/')
+def profile_view(request):
+    if request.method == 'POST':
+        # Logic to ADD a new passenger from the profile page
+        PassengerProfile.objects.create(
+            user=request.user,
+            full_name=request.POST.get('full_name'),
+            age=request.POST.get('age'),
+            gender=request.POST.get('gender'),
+            berth_preference=request.POST.get('berth')
+        )
+        return redirect('profile')
+
+    # Fetch ALL passengers belonging to this user
+    passengers = PassengerProfile.objects.filter(user=request.user)
+    return render(request, 'profile.html', {'passengers': passengers})
+
+@login_required(login_url='/login/')
+def delete_passenger(request, passenger_id):
+    # Securely delete a passenger (ensuring it belongs to the logged-in user)
+    passenger = get_object_or_404(PassengerProfile, id=passenger_id, user=request.user)
+    passenger.delete()
+    return redirect('profile')

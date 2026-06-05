@@ -32,8 +32,16 @@
     </style>
 </head>
 <body>
-    <h2>🚂 RailAgent Terminal</h2>
-    
+
+    <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 15px;">
+        <h2 style="margin: 0; color: #0056b3;">🚂 RailAgent AI</h2>
+        <div>
+            <span style="margin-right: 15px; color: gray;">Welcome, {{ request.user.username }}!</span>
+            <a href="{% url 'profile' %}" style="padding: 8px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">Manage Passengers</a>
+            <a href="{% url 'logout' %}" style="padding: 8px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;">Logout</a>
+        </div>
+    </div>
+
     <div id="chat-log"></div>
     
     <input id="chat-message-input" type="text" placeholder="Tell the agent what to do..." autofocus>

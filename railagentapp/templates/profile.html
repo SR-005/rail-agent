@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head><title>My Profile - RailAgent</title></head>
+<body style="font-family: Arial; padding: 20px; background-color: #f4f4f9;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 20px;">
+        <h2 style="margin: 0;">🚂 {{ request.user.username }}'s Passenger List</h2>
+        <div>
+            <a href="{% url 'index' %}" style="padding: 10px 15px; background: #0056b3; color: white; text-decoration: none; border-radius: 5px;">Back to Chat</a>
+            <a href="{% url 'logout' %}" style="padding: 10px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">Logout</a>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 20px;">
+        <div style="flex: 2;">
+            <h3>Saved Passengers</h3>
+            {% for person in passengers %}
+                <div style="background: white; padding: 15px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>{{ person.full_name }}</strong> (Age: {{ person.age }}, Gender: {{ person.gender }})<br>
+                        <small style="color: gray;">Berth Preference: {{ person.get_berth_preference_display }}</small>
+                    </div>
+                    <a href="{% url 'delete_passenger' person.id %}" style="color: red; text-decoration: none; font-weight: bold;">🗑️ Remove</a>
+                </div>
+            {% empty %}
+                <p style="color: gray;">No passengers saved yet.</p>
+            {% endfor %}
+        </div>
+
+        <div style="flex: 1; background: white; padding: 20px; border: 1px solid #ccc; border-radius: 8px; height: fit-content;">
+            <h3>Add New Passenger</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="text" name="full_name" placeholder="Full Name" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                <input type="number" name="age" placeholder="Age" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                <select name="gender" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                    <option value="" disabled selected>Select Gender</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                </select>
+                <select name="berth" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                    <option value="NO">No Preference</option>
+                    <option value="LB">Lower</option>
+                    <option value="MB">Middle</option>
+                    <option value="UB">Upper</option>
+                    <option value="SL">Side Lower</option>
+                </select>
+                <button type="submit" style="width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px;">➕ Add Passenger</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
