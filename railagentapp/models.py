@@ -7,12 +7,13 @@ class PassengerProfile(models.Model):
     full_name=models.CharField(max_length=100, help_text="Exactly as it appears on ID")
     age=models.IntegerField(null=True, blank=True)
     
-    GENDER_CHOICES=[
-        ('M','Male'),
-        ('F','Female'),
-        ('T','Transgender')
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Transgender', 'Transgender')
     ]
-    gender=models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True)
+    
+    gender = models.CharField(max_length=15, choices=GENDER_CHOICES, null=True, blank=True)
     
     BERTH_CHOICES=[
         ('LB', 'Lower'),

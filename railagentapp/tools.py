@@ -249,8 +249,8 @@ async def login():
     try:
         # DETACHED_PROCESS (0x00000008) cuts the parent-child bond on Windows
         subprocess.Popen(
-            [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--window-size=412,915",               #"--start-maximized"
-                "--user-agent=Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+            [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--window-size=390,844",              #"--start-maximized"
+                "--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
             ],      
             creationflags=0x00000008 if os.name == 'nt' else 0,
             stdout=subprocess.DEVNULL,
@@ -273,7 +273,7 @@ async def login():
     context=browser.contexts[0]
     page=context.pages[0] if context.pages else await context.new_page()
 
-    await page.set_viewport_size({"width": 412, "height": 915})
+    #await page.set_viewport_size({"width": 390, "height": 844})
 
     loginsession["playwright"]=playwright
     loginsession["browser"]=browser
@@ -331,39 +331,60 @@ async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
     print(f"[System] Filling search: {fromcode} to {tocode} for {date}")
 
     try:
-        frominput=page.locator("#origin input")
-        await frominput.fill(fromcode)
-        await asyncio.sleep(1.5)
-        await page.keyboard.press("Enter")
+        # 🟢 1. FROM STATION - Type slowly and click the exact dropdown item
+        frominput = page.locator("p-autocomplete#origin input")
+        await frominput.click()
+        await page.keyboard.press("Control+A")
+        await page.keyboard.press("Backspace")
+        await frominput.type(fromcode, delay=150)
+        
+        # Wait for the dropdown list to appear, then physically click the exact station
+        from_dropdown = page.locator(f"li[role='option']:has-text('{fromcode}')").first
+        await from_dropdown.wait_for(state="visible", timeout=10000)
+        await from_dropdown.click()
+        await asyncio.sleep(0.5)
 
-        toinput=page.locator("#destination input")
-        await toinput.fill(tocode)
-        await asyncio.sleep(1.5)
-        await page.keyboard.press("Enter")
+        # 🟢 2. TO STATION - Type slowly and click the exact dropdown item
+        toinput = page.locator("p-autocomplete#destination input")
+        await toinput.click()
+        await page.keyboard.press("Control+A")
+        await page.keyboard.press("Backspace")
+        await toinput.type(tocode, delay=150)
+        
+        to_dropdown = page.locator(f"li[role='option']:has-text('{tocode}')").first
+        await to_dropdown.wait_for(state="visible", timeout=10000)
+        await to_dropdown.click()
+        await asyncio.sleep(0.5)
 
-        dateinput=page.locator("#jDate input")
+        # 🟢 3. DATE SELECTION
+        dateinput = page.locator("p-calendar#jDate input")
         await dateinput.click()
         await page.keyboard.press("Control+A")
         await page.keyboard.press("Backspace")
-        await dateinput.type(date,delay=50)
-        await page.keyboard.press("Tab")
-        await page.keyboard.press("Tab")
-        await page.keyboard.press("Tab")
-        await page.keyboard.press("Enter")
+        await dateinput.type(date, delay=100)
+        await asyncio.sleep(0.5)
+        await page.keyboard.press("Escape") # CRITICAL: Closes the calendar popup so it doesn't block the search button!
+        await asyncio.sleep(0.5)
 
-        if coach!="All Classes":
+        # 🟢 4. COACH SELECTION
+        if coach != "All Classes":
             await page.click('#journeyClass')
+            await asyncio.sleep(0.5)
             await page.click(f"p-dropdownitem >> text={coach}")
+            await asyncio.sleep(0.5)
         
-        searchbutton=page.locator("button.search_btn", has_text="Search Trains")
-        await searchbutton.click(force=True)
+        # 🟢 5. SEARCH BUTTON
+        searchbutton = page.locator("button.search_btn", has_text="Search Trains")
+        await searchbutton.scroll_into_view_if_needed()
+        await searchbutton.click() # Removed force=True so it clicks normally
 
+        await asyncio.sleep(2)
         print("SUCCESS: Navigated to Results Page.")
 
         return True
 
     except Exception as e:
-        print("Error in searchfill function ", e)
+        print("Error in searchfill function: ", e)
         return False
 
 async def gettrain(trainnumber: str):
@@ -441,20 +462,61 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
         await page.keyboard.press("Tab")
         await asyncio.sleep(1)
 
-        # Dropdowns
-        await page.select_option('select[formcontrolname="passengerGender"]', label=gender)
-        if preference!="None":
-            await page.select_option('select[formcontrolname="passengerBerthChoice"]', label=preference)
+        irctc_gender_code = gender.strip().upper()[0] 
+        print(f"[System] DB sent '{gender}'. Sending Code '{irctc_gender_code}' to IRCTC...")
+        
+        # 🟢 FIX: Directly lock the value. No tabs, no arrows, no Iraq!
+        genderdropdown = page.locator('select[formcontrolname="passengerGender"]')
+        await genderdropdown.select_option(value=irctc_gender_code)
         await asyncio.sleep(1)
+        
+        '''#2. BERTH FIX
+        if preference != "None":
+            berthdropdown = page.locator('select[formcontrolname="passengerBerthChoice"]')
+            await berthdropdown.click()
+            await asyncio.sleep(0.5)
+            try:
+                # For Berth, we MUST use label= because your DB sends words ("Lower") 
+                # but IRCTC's hidden value is an abbreviation ("LB")
+                clean_preference = preference.strip().title()
+                await berthdropdown.select_option(label=clean_preference)
+            except Exception as e:
+                print(f"[Warning] Could not select Berth '{preference}'. Moving on.")'''
+            
+        for _ in range(4): 
+            await page.keyboard.press("PageDown")
+            await asyncio.sleep(0.4) # Brief pause to let the browser render the scroll
+            
+        print("[System] Ready for Payment.")
+        await asyncio.sleep(2)
+        
+        print("[System] Executing CSS Override to reveal the Continue button...")
+        await page.evaluate("""
+            const btns = Array.from(document.querySelectorAll('button')).filter(b => b.innerText.includes('Continue'));
+            if(btns.length > 0) {
+                const btn = btns[0];
+                btn.style.position = 'fixed';
+                btn.style.bottom = '50px'; /* Floats it slightly above the bottom */
+                btn.style.left = '5%';
+                btn.style.width = '90%';
+                btn.style.zIndex = '999999'; /* Forces it on top of EVERYTHING */
+                btn.style.boxShadow = '0px 0px 20px red'; /* Red glow so you can't miss it */
+            }
+        """)
 
-        # Mobile Number Input
-        '''mobileinput = page.locator('#mobileNumber')
-        await mobileinput.click()
-        await page.keyboard.press("Control+A")
-        await page.keyboard.press("Backspace")
-        await mobileinput.type(number, delay=100)
-        await page.keyboard.press("Tab")'''
-        await asyncio.sleep(1)
+        print("[System] Ready for Payment. The Continue button has been floated for you!")
+        await asyncio.sleep(2)
+
+        # The ':visible' pseudo-class prevents Playwright from locking onto hidden background elements
+        continue_btn = page.locator("button:visible", has_text="Continue")
+        
+        if await continue_btn.count() > 0:
+            await continue_btn.first.scroll_into_view_if_needed()
+            print("[System] Continue button found and focused! Ready for Payment.")
+        else:
+            print("[System] Warning: Could not locate a visible Continue button.")
+    
+        await asyncio.sleep(2)
         
         return True
 
