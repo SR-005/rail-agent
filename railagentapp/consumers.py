@@ -1,67 +1,82 @@
 import json
-import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from railagentapp.models import PassengerProfile 
+from railagentapp.main import railagent 
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from langchain_core.messages import HumanMessage, AIMessage
-from railagentapp.main import railagent
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user=self.scope["user"]
 
+        # Reject unauthenticated users
+        if self.user.is_anonymous:
+            await self.close()
+            return
 
-class RailAgentConsumer(AsyncWebsocketConsumer):
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.chathistory = []
-
-    #This runs the exact moment a user opens the webpage
-    async def connect(self):                            
         await self.accept()
-        
-        # Send a welcome message directly to the browser
+
+        # Fetch the user's IRCTC details securely from the database
+        profiledata=await self.get_passenger_profile()
+
+        #Inject this data as a "System Message" into this user's specific chat history
+        self.chat_history=[
+            {
+                "role": "user", 
+                "content": (
+                    f"System Note: You are talking to {self.user.username}. "
+                    f"Here are their strict IRCTC booking details. NEVER ask the user for these details again. "
+                    f"Use these exact values when executing the BookTrainTicket tool:\n{profiledata}"
+                )
+            },
+            {
+                "role": "model",
+                "content": "Acknowledged. I have memorized the user's details and will use them automatically for bookings."
+            }
+        ]
+
+        #Greet the user in the UI
         await self.send(text_data=json.dumps({
             'type': 'system',
-            'message': 'Welcome to RailAgent UI! Connection established.'
+            'message': f'Welcome back, {self.user.username}! Your passenger profile is loaded.'
         }))
 
-    #This runs if the user closes their browser tab.
-    async def disconnect(self, close_code):             
-        print(f"[System] User disconnected. Code: {close_code}")
-
-    #This runs every time the browser sends us a message
-    async def receive(self, text_data):                 
-        textdatajson=json.loads(text_data)
-        usermessage=textdatajson['message']
-        
-        print(f"User says: {usermessage}")
-
-        await self.send(text_data=json.dumps({
-            'type': 'status',
-            'message': 'Agent is thinking...'
-        }))
-
+    @database_sync_to_async
+    def get_passenger_profile(self):
         try:
-            self.chathistory.append(HumanMessage(content=usermessage))
-            result=await railagent.ainvoke({"messages": self.chathistory})
+            profile = PassengerProfile.objects.get(user=self.user)
+            return f"Name: {profile.full_name}, Age: {profile.age}, Gender: {profile.gender}, Berth: {profile.berth_preference}"
+        except PassengerProfile.DoesNotExist:
+            return "No profile details found."
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        usermessage=data['message']
+
+        # Append the new message to this user's history
+        self.chat_history.append({"role": "user", "content": usermessage})
+
+        # Send to LangChain
+        await self.send(text_data=json.dumps({'type': 'status', 'message': 'Agent is thinking...'}))
+        
+        try:
+            result=await railagent.ainvoke({"messages": self.chat_history})
             agentreply=result['messages'][-1]
-
+            
             if isinstance(agentreply.content, str):
-                cleantext = agentreply.content
-            elif isinstance(agentreply.content, list):
-                cleantext = "".join([block['text'] for block in agentreply.content if block.get('type')=='text'])
+                cleantext=agentreply.content
             else:
-                cleantext = str(agentreply.content)
+                cleantext=str(agentreply.content)
 
-            self.chathistory.append(AIMessage(content=cleantext))
+            self.chat_history.append({"role": "model", "content": cleantext})
 
             await self.send(text_data=json.dumps({
-                'type': 'chat',
+                'type': 'bot',
                 'message': cleantext
             }))
-
+            
         except Exception as e:
+            print(f"Agent Error: {e}")
             await self.send(text_data=json.dumps({
                 'type': 'error',
-                'message': f'An error occurred: {str(e)}'
+                'message': 'Sorry, my systems encountered an error while processing that.'
             }))
