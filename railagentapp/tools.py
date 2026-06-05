@@ -309,8 +309,18 @@ async def login():
     await sign_in_button.click()
 
     try:
-        await page.wait_for_selector("text=MY ACCOUNT", timeout=10000)
-        print("Successfully Logged into IRCTC")
+        '''if ismobile:
+            print("[System] Mobile viewport detected. Opening sidebar menu for Login Verification...")
+            hamburgermenu=page.locator(".moblogo .fa-align-justify").first
+            await hamburgermenu.click(force=True)
+            await asyncio.sleep(4)
+
+            username_label = page.locator("label:has-text('Welcome')")
+            full_text = await username_label.inner_text()
+            print(f"Logged text found: {full_text}")
+        else:
+            await page.wait_for_selector("text=MY ACCOUNT", timeout=10000)
+            print("Successfully Logged into IRCTC")'''
         return True
     except:
         print("Click sent, but I don't see the 'LOGOUT' button yet. Please check if a CAPTCHA appeared or if there is an error message.")
@@ -499,7 +509,6 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
 
 
 
-'''async def scheduletatkal(name: str, age: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
 
 '''
 async def tatkalsearchfill(fromcode: str, tocode: str, date: str, coach: str):
@@ -534,12 +543,16 @@ async def tatkalsearchfill(fromcode: str, tocode: str, date: str, coach: str):
         await page.locator("#journeyQuota").click()
     
         await page.wait_for_timeout(500) 
-        await page.get_by_text("TATKAL", exact=True).click()
+        await page.locator("p-dropdownitem", has_text="TATKAL").first.click(force=True)
         print("[System] Quota changed to TATKAL.")
+
+        await asyncio.sleep(3)
         
         searchbutton=page.locator("button.search_btn", has_text="Search Trains")
-        await searchbutton.click(force=True)
+        await searchbutton.wait_for(state="visible", timeout=5000)
+        await searchbutton.click(force=True, delay=200)
 
+        await asyncio.sleep(3)
         print("SUCCESS: Navigated to Results Page.")
 
         return True
@@ -547,8 +560,9 @@ async def tatkalsearchfill(fromcode: str, tocode: str, date: str, coach: str):
     except Exception as e:
         print("Error in searchfill function ", e)
         return False
+'''
 
-
+'''
 async def tatkalbooking(name: str, age: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
     try:
         journeydate=datetime.datetime.strptime(date,"%d-%m-%Y")
@@ -578,16 +592,6 @@ async def tatkalbooking(name: str, age: str, gender: str, preference: str, train
         if not page:
             return "Error: No active browser session found."
         
-        loginstatus=await login()
-        if not loginstatus:
-            print("Login Unsuccessfull!! PLEASE TRY AGAIN")
-        else:
-            print("Login Successfull")
-
-        page=loginsession["page"]
-        if not page:
-            return "Error: No active browser session found."
-        
         fromcode=STATIONCODES.get(fromstation.lower())
         tocode=STATIONCODES.get(tostation.lower())
         date=date.replace("-", "/")
@@ -605,6 +609,7 @@ async def tatkalbooking(name: str, age: str, gender: str, preference: str, train
 
         
         page=loginsession["page"]
+
         maxretries = 15
         for attempt in range(maxretries):
             try:
@@ -625,7 +630,7 @@ async def tatkalbooking(name: str, age: str, gender: str, preference: str, train
             print("Error in Tatkal Booking function ", e)
             return True
     
-    '''if passengerfillstatus!=True:
+    if passengerfillstatus!=True:
         return "An Error Occured while filling the passenger details."
     
     if loginsession["browser"]:
@@ -641,8 +646,8 @@ async def tatkalbooking(name: str, age: str, gender: str, preference: str, train
     print("  3. Click 'Continue' to proceed to the CAPTCHA page.")
     print("═"*50 + "\n")
 
-    return True'''
-
+    return True
+'''
 
 if __name__=="__main__":
     #asyncio.run(normalbooking("Sreeram V Gopal","20","Male","Lower","16127","Ernakulam","Aluva","02-06-2026","SL"))
