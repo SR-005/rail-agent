@@ -11,6 +11,19 @@
         </div>
     </div>
 
+    <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 20px;">
+        <h3 style="margin-top: 0;">Account Settings</h3>
+        <form method="POST" style="display: flex; gap: 10px; align-items: center;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_email">
+            <label><strong>Receive Seat Alerts At:</strong></label>
+            <input type="email" name="new_email" value="{{ request.user.email }}" required style="padding: 8px; width: 300px; border: 1px solid #ccc; border-radius: 4px;">
+            <button type="submit" style="padding: 8px 15px; background: #ffc107; color: black; border: none; border-radius: 5px; cursor: pointer;">Update Email</button>
+        </form>
+        {% if success_message %}<p style="color: green; margin-bottom: 0;">{{ success_message }}</p>{% endif %}
+        {% if error_message %}<p style="color: red; margin-bottom: 0;">{{ error_message }}</p>{% endif %}
+    </div>
+
     <div style="display: flex; gap: 20px;">
         <div style="flex: 2;">
             <h3>Saved Passengers</h3>
@@ -31,6 +44,7 @@
             <h3>Add New Passenger</h3>
             <form method="POST">
                 {% csrf_token %}
+                <input type="hidden" name="action" value="add_passenger">
                 <input type="text" name="full_name" placeholder="Full Name" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
                 <input type="number" name="age" placeholder="Age" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
                 <select name="gender" required style="width: 100%; padding: 8px; margin-bottom: 10px;">

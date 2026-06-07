@@ -24,13 +24,15 @@ class RailAgentConsumer(AsyncWebsocketConsumer):
                 "role": "user", 
                 "content": (
                     f"System Note: You are talking to {self.user.username}. "
+                    f"Their verified email for tracking alerts is: {self.user.email}. "
                     f"Here are their strict IRCTC booking details. NEVER ask the user for these details again. "
+                    f"Use these exact values when executing tools:\n{profiledata}"
                     f"Use these exact values when executing the BookTrainTicket tool:\n{profiledata}"
                 )
             },
             {
                 "role": "ai",
-                "content": "Acknowledged. I have memorized the user's details and will use them automatically for bookings."
+                "content": "Acknowledged. I have memorized the user's email and details and will use them automatically."
             }
         ]
 

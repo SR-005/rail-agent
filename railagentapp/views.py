@@ -11,15 +11,19 @@ def index(request):
 def register_view(request):
     if request.method=='POST':
         username=request.POST.get('username')
+        email = request.POST.get('email')
         password=request.POST.get('password')
         fullname=request.POST.get('full_name')
         age=request.POST.get('age')
         gender=request.POST.get('gender')
         berth=request.POST.get('berth')
 
+        if User.objects.filter(email=email).exists():
+            return render(request, 'register.html', {'error': 'Email is already registered!'})
+
         # Create the core Django User
         if not User.objects.filter(username=username).exists():
-            user=User.objects.create_user(username=username, password=password)
+            user = User.objects.create_user(username=username, email=email, password=password)
             PassengerProfile.objects.create(
                 user=user,
                 full_name=fullname,
@@ -57,20 +61,33 @@ def logout_view(request):
 
 @login_required(login_url='/login/')
 def profile_view(request):
+    context = {}
     if request.method == 'POST':
-        # Logic to ADD a new passenger from the profile page
-        PassengerProfile.objects.create(
-            user=request.user,
-            full_name=request.POST.get('full_name'),
-            age=request.POST.get('age'),
-            gender=request.POST.get('gender'),
-            berth_preference=request.POST.get('berth')
-        )
-        return redirect('profile')
+        action = request.POST.get('action') # 🟢 Check which form was submitted
+
+        if action == 'update_email':
+            new_email = request.POST.get('new_email')
+            # Ensure no one else is using this email
+            if User.objects.filter(email=new_email).exclude(id=request.user.id).exists():
+                context['error_message'] = "This email is already in use by another account."
+            else:
+                request.user.email = new_email
+                request.user.save()
+                context['success_message'] = "Alert Email updated successfully!"
+
+        elif action == 'add_passenger':
+            PassengerProfile.objects.create(
+                user=request.user,
+                full_name=request.POST.get('full_name'),
+                age=request.POST.get('age'),
+                gender=request.POST.get('gender'),
+                berth_preference=request.POST.get('berth')
+            )
+            return redirect('profile')
 
     # Fetch ALL passengers belonging to this user
-    passengers = PassengerProfile.objects.filter(user=request.user)
-    return render(request, 'profile.html', {'passengers': passengers})
+    context['passengers'] = PassengerProfile.objects.filter(user=request.user)
+    return render(request, 'profile.html', context)
 
 @login_required(login_url='/login/')
 def delete_passenger(request, passenger_id):
