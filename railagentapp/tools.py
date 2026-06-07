@@ -184,15 +184,15 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
         "\n- 2-Tier AC (2A): AVAILABLE 01"
     )
 
-async def trackstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str) -> str:
-    asyncio.create_task(monitorstatus(trainnumber, fromstation, tostation, date, coach))
+async def trackstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, user_email: str,) -> str:
+    asyncio.create_task(monitorstatus(trainnumber, fromstation, tostation, date, coach, user_email))
     return (
         f"Success! I have deployed a background agent to monitor Train {trainnumber} "
         f"for {coach} class. It will check silently every 3 minutes."
     )
 
 #threaded monitor function
-async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, interval: int = 3) -> str:
+async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, user_email: str,interval: int = 3) -> str:
     print(f"Background monitoring started for Train {trainnumber} ({coach}). Checking every {interval} mins...")
 
     while True:
@@ -221,7 +221,7 @@ async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date
                 sys.stdout.write("You: ")    #for new user chat to appear
                 sys.stdout.flush()
                 
-                send_email_alert(trainnumber, coach, currentstatus)     #send alert email
+                send_email_alert(trainnumber, coach, currentstatus, user_email)     #send alert email
 
             else:
                 print(f"[Tracker] Train {trainnumber} ({coach}) status: '{currentstatus}'. Sleeping for {interval} mins...")
@@ -232,12 +232,11 @@ async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date
 
         await asyncio.sleep(interval*60)
 
-def send_email_alert(trainnumber, coach, currentstatus):
+def send_email_alert(trainnumber, coach, currentstatus, user_email):
     print("[System] Attempting to send email alert via Brevo API...")
     try:
         api_key = os.getenv("BREVO_API_KEY")
         sender_email = os.getenv("SENDER_EMAIL")
-        receiver_email = os.getenv("RECEIVER_EMAIL")
 
         if not api_key:
             print("[Warning] Brevo API key missing in .env file!")
@@ -248,7 +247,7 @@ def send_email_alert(trainnumber, coach, currentstatus):
         # Build the exact JSON payload Brevo demands
         payload = {
             "sender": {"email": sender_email, "name": "Train Bot"},
-            "to": [{"email": receiver_email}],
+            "to": [{"email": user_email}],
             "subject": f"🚨 SEAT AVAILABLE: Train {trainnumber} ({coach})",
             "textContent": f"Great news!\n\nTrain {trainnumber} for {coach} class is now showing as: {currentstatus}.\n\nGet to your computer and book it fast!"
         }

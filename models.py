@@ -18,6 +18,7 @@ class TrackStatusInput(BaseModel):
     tostation: str = Field(description="Destination station name (e.g., 'Aluva').")
     date: str = Field(description="Travel date strictly in DD-MM-YYYY format.")
     coach: str = Field(description="Coach class (e.g., 'SL', '3A', '2A').")
+    user_email: str = Field(description="The user's verified email address extracted from the system note.")
 
 class BookingInput(BaseModel):
     name: str = Field(description="Passenger full name. MUST be formatted in Title Case (e.g., 'Sreeram V Gopal').")

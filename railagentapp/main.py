@@ -48,6 +48,9 @@ def build_agent():
                 "the 5-digit train number, source station, destination station, travel date (must be strictly in DD-MM-YYYY format), "
                 "and coach class (e.g., SL, 3A, 2A). "
                 "If any of these details are missing, you MUST ask the user to provide the missing information first. "
+                "ABSOLUTE RULE: NEVER guess the train number or pick one from the search results on your own. "
+                "If the user hasn't explicitly chosen a train, run SearchTrains, show them the list, and STOP. Ask them to pick one first! "
+                "YOU MUST ALSO extract the user's email address from the System Note and pass it into the 'user_email' parameter. "
                 "Once executed successfully, inform the user that the monitor is silently running in the background and will sound a loud audio alarm if a seat opens up."
             )
         ),
@@ -59,6 +62,8 @@ def build_agent():
                 "passenger name, age, gender, berth preference, 5-digit train number, "
                 "source station, destination station, travel date (must be in DD-MM-YYYY format), and coach class (e.g., SL, 3A, 2A). "
                 "If any of these details are missing, you MUST ask the user to provide them. "
+                "ABSOLUTE RULE: NEVER guess the train number or pick one from the search results on your own. "
+                "If the user hasn't explicitly chosen a train, run SearchTrains, show them the list, and STOP. Ask them to pick one first!"
                 "Once executed successfully, explicitly tell the user to check the open browser window to manually enter their mobile number and proceed to payment."
             )
         )
@@ -82,7 +87,8 @@ def build_agent():
         "\n5. FORMATTING: Present search results as a CLEAR NUMBERED LIST (e.g., 1. [Number] [Name])."
         "\n6. NEVER use general knowledge about Indian Railways. Only use numbers and stations present in this chat history."
         "\n7. If you call CheckSeats, you are FORBIDDEN from calling SearchTrains immediately after unless the user changed the city names."
-        
+        "\n8. ANTI-AUTONOMY RULE: NEVER select a train on behalf of the user! If the user asks to book or track but hasn't explicitly specified the 5-digit train number, you MUST call SearchTrains, present the list to the user, and STOP. Wait for them to reply with their choice."
+
         "\n\nOPERATIONAL PROTOCOL:"
         "\n- PHASE 1 (Discovery): User mentions two cities -> Call SearchTrains."
         "\n- PHASE 2 (Selection): Numbered list is shown -> User picks a number -> Call CheckSeats."
