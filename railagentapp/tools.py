@@ -267,7 +267,7 @@ def send_email_alert(trainnumber, coach, currentstatus, user_email):
                 print(f"API returned status: {response.status}")
 
     except Exception as e:
-        print(f"❌ Failed to send Brevo API email: {e}")
+        print(f"Failed to send Brevo API email: {e}")
 
 
 
@@ -285,8 +285,8 @@ async def login():
     try:
         # DETACHED_PROCESS (0x00000008) cuts the parent-child bond on Windows
         subprocess.Popen(
-            [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--window-size=390,844",              #"--start-maximized"
-                "--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+            [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--start-maximized",              #"--window-size=390,844"
+                #"--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
             ],      
             creationflags=0x00000008 if os.name == 'nt' else 0,
             stdout=subprocess.DEVNULL,
@@ -315,8 +315,7 @@ async def login():
     loginsession["browser"]=browser
     loginsession["page"]=page
 
-    await page.goto("https://www.irctc.co.in/nget/train-search")
-    await page.wait_for_load_state("domcontentloaded")
+    await page.goto("https://www.irctc.co.in/nget/train-search", wait_until="domcontentloaded")
     await asyncio.sleep(5)
 
     windowwidth=await page.evaluate("window.innerWidth")
@@ -328,15 +327,20 @@ async def login():
             hamburgermenu=page.locator(".moblogo .fa-align-justify").first
             await hamburgermenu.click(force=True)
             await asyncio.sleep(4)
+
+            loginbutton=page.locator("button.search_btn", has_text="LOGIN / REGISTER").first
+            await loginbutton.wait_for(state="attached", timeout=5000)
+            await loginbutton.evaluate("node => node.click()")
+
         except Exception as e:
             print(f"Failed to open mobile menu: {e}")
 
     else:
         print("[System] Desktop viewport detected (Width: {windowwidth}px)")
 
-    loginbutton=page.locator("button.search_btn", has_text="LOGIN / REGISTER").first
-    await loginbutton.wait_for(state="attached", timeout=5000)
-    await loginbutton.evaluate("node => node.click()")
+        login_selector = "a:has-text('LOGIN / REGISTER')"
+        await page.wait_for_selector(login_selector, timeout=15000)
+        await page.click(login_selector)
 
     await page.fill('input[formcontrolname="userid"]', os.getenv("IRCTCUSER"))
     await page.fill('input[formcontrolname="password"]', os.getenv("IRCTCPASS"))
