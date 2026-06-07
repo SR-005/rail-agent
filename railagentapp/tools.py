@@ -5,7 +5,10 @@ import subprocess
 import re
 import datetime
 from dotenv import load_dotenv
-import winsound
+import smtplib
+import urllib.request
+import json
+from email.message import EmailMessage
 from playwright.async_api import async_playwright
 
 load_dotenv()
@@ -102,7 +105,7 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
         await page.goto(url, wait_until="domcontentloaded")
         await asyncio.sleep(5)
 
-        await page.wait_for_selector(f"#train-{trainnumber}", timeout=10000)
+        await page.wait_for_selector(f"#train-{trainnumber}", timeout=20000)
         traincard=page.locator(f"#train-{trainnumber}")
 
         seatcards=traincard.locator("div[data-key]")
@@ -218,11 +221,8 @@ async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date
                 sys.stdout.write("You: ")    #for new user chat to appear
                 sys.stdout.flush()
                 
-                # Play a loud beep to wake you up
-                for _ in range(5):
-                    winsound.Beep(1000, 500) 
-                    await asyncio.sleep(0.1)
-                    break 
+                send_email_alert(trainnumber, coach, currentstatus)     #send alert email
+
             else:
                 print(f"[Tracker] Train {trainnumber} ({coach}) status: '{currentstatus}'. Sleeping for {interval} mins...")
                 sys.stdout.write("You: ")    #for new user chat to appear
@@ -232,6 +232,43 @@ async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date
 
         await asyncio.sleep(interval*60)
 
+def send_email_alert(trainnumber, coach, currentstatus):
+    print("[System] Attempting to send email alert via Brevo API...")
+    try:
+        api_key = os.getenv("BREVO_API_KEY")
+        sender_email = os.getenv("SENDER_EMAIL")
+        receiver_email = os.getenv("RECEIVER_EMAIL")
+
+        if not api_key:
+            print("[Warning] Brevo API key missing in .env file!")
+            return
+
+        url = "https://api.brevo.com/v3/smtp/email"
+        
+        # Build the exact JSON payload Brevo demands
+        payload = {
+            "sender": {"email": sender_email, "name": "Train Bot"},
+            "to": [{"email": receiver_email}],
+            "subject": f"🚨 SEAT AVAILABLE: Train {trainnumber} ({coach})",
+            "textContent": f"Great news!\n\nTrain {trainnumber} for {coach} class is now showing as: {currentstatus}.\n\nGet to your computer and book it fast!"
+        }
+
+        # Convert payload to bytes and build the request headers
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(url, data=data, method='POST')
+        req.add_header('accept', 'application/json')
+        req.add_header('api-key', api_key)
+        req.add_header('content-type', 'application/json')
+
+        # Fire it off!
+        with urllib.request.urlopen(req) as response:
+            if response.status == 201:
+                print("Brevo API alert sent successfully!")
+            else:
+                print(f"API returned status: {response.status}")
+
+    except Exception as e:
+        print(f"❌ Failed to send Brevo API email: {e}")
 
 
 
@@ -465,12 +502,14 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
         irctc_gender_code = gender.strip().upper()[0] 
         print(f"[System] DB sent '{gender}'. Sending Code '{irctc_gender_code}' to IRCTC...")
         
-        # 🟢 FIX: Directly lock the value. No tabs, no arrows, no Iraq!
         genderdropdown = page.locator('select[formcontrolname="passengerGender"]')
         await genderdropdown.select_option(value=irctc_gender_code)
         await asyncio.sleep(1)
+
+        await page.mouse.click(0, 0)
+        await asyncio.sleep(0.5)
         
-        '''#2. BERTH FIX
+        #2. BERTH FIX
         if preference != "None":
             berthdropdown = page.locator('select[formcontrolname="passengerBerthChoice"]')
             await berthdropdown.click()
@@ -481,7 +520,7 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
                 clean_preference = preference.strip().title()
                 await berthdropdown.select_option(label=clean_preference)
             except Exception as e:
-                print(f"[Warning] Could not select Berth '{preference}'. Moving on.")'''
+                print(f"[Warning] Could not select Berth '{preference}'. Moving on.")
             
         for _ in range(4): 
             await page.keyboard.press("PageDown")
