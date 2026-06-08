@@ -424,6 +424,52 @@
                 gap: 24px;
             }
         }
+
+        /* 🟢 NEW: Train Card Styles */
+        .train-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            border-radius: 16px;
+            padding: 18px;
+            margin: 12px 0;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+        .train-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(167, 139, 250, 0.6);
+            transform: translateX(4px);
+        }
+        .train-card h4 {
+            margin: 0 0 12px 0;
+            color: #ffffff;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.15em;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 10px;
+        }
+        .train-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .train-time {
+            display: flex;
+            flex-direction: column;
+        }
+        .train-time span {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #c084fc;
+            margin-top: 4px;
+        }
+        .train-time small {
+            color: var(--text-muted);
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
@@ -548,6 +594,21 @@
             if (data.type === 'error') messageClass = 'sys-msg';
 
             let formattedMessage = data.message;
+
+            const trainRegex = /\[TRAIN\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n]+)(?:\|\s*([^\n]+))?/g;
+            formattedMessage = formattedMessage.replace(trainRegex, function(match, no, name, dep, arr, extra) {
+                let extraHtml = extra ? `<div class="train-time" style="text-align: center;"><small>Duration</small><span style="color: #34d399; font-size: 0.9em;">${extra.trim()}</span></div>` : '';
+                return `
+                <div class="train-card">
+                    <h4>🚂 ${no.trim()} - ${name.trim()}</h4>
+                    <div class="train-details">
+                        <div class="train-time"><small>Depart</small><span>${dep.trim()}</span></div>
+                        ${extraHtml}
+                        <div class="train-time" style="text-align: right;"><small>Arrive</small><span>${arr.trim()}</span></div>
+                    </div>
+                </div>`;
+            });
+
             formattedMessage = formattedMessage.replace(/\r?\n/g, '<br>');
             formattedMessage = formattedMessage.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 

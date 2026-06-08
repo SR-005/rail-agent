@@ -45,46 +45,66 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
     print(f"Searching train searchtrains for: {fromstation} to {tostation} on {date}")
 
     try:
-        fromcode=STATIONCODES.get(fromstation.lower())
-        tocode=STATIONCODES.get(tostation.lower())
-        date=date
+        fromcode = STATIONCODES.get(fromstation.lower())
+        tocode = STATIONCODES.get(tostation.lower())
         if not fromcode or not tocode:
             return "Could not find Station Codes for these Stations. Please Retry with Major Stations"
-        
 
-        url=f"https://www.confirmtkt.com/rbooking/trains/from/{fromcode}/to/{tocode}/{date}"
+        url = f"https://www.confirmtkt.com/rbooking/trains/from/{fromcode}/to/{tocode}/{date}"
         async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 
-            browser=await p.chromium.launch(headless=True) 
-            context=await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-
-            page=await context.new_page()
+            page = await context.new_page()
             await page.goto(url, wait_until="networkidle")
             await asyncio.sleep(5)
-            content=await page.content()
-
+            
+            content = await page.content()
             if "No trains found" in content:
-                browser.close()
+                await browser.close()
                 return f"No trains found for {fromstation} to {tostation} on {date}."
 
-            trainrows=await page.query_selector_all('div.body-sm.truncate.text-neutral-800')
-            results=[]
-            for row in trainrows:
-                rawtext=await row.inner_text()
-                text=rawtext.strip()
-                if text:
-                    results.append(text)
+            # 🟢 UPDATED: Targeting the specific train cards found in image_a461b0.png
+            train_cards = await page.query_selector_all('div[id^="train-"]')
+            results = []
 
-            print("Result's Found!!")
+            for card in train_cards:
+                # Get the train number from the ID
+                train_id = await card.get_attribute("id")
+                train_number = train_id.replace("train-", "")
+                
+                # Extract the train name
+                name_element = await card.query_selector(".text-neutral-800.body-sm")
+                train_name = (await name_element.inner_text()).strip() if name_element else "Unknown Train"
+                
+                # 🟢 Extracting times and duration based on image_a461b0.png structure
+                time_elements = await card.query_selector_all('div.body-sm.text-left.font-medium')
+                duration_element = await card.query_selector('p.body-xs.inline-block.text-secondary')
+                
+                if len(time_elements) >= 2 and duration_element:
+                    dep_raw = await time_elements[0].inner_text() # e.g., "01:10 ERN"
+                    arr_raw = await time_elements[1].inner_text() # e.g., "01:33 AWY"
+                    dur_raw = await duration_element.inner_text() # e.g., "0h 23m"
+                    
+                    # Clean the station codes out to leave only the time
+                    dep_clean = dep_raw.split()[0]
+                    arr_clean = arr_raw.split()[0]
+                    
+                    # Format as the secret code for the frontend interceptor
+                    results.append(f"[TRAIN] {train_number} | {train_name} | {dep_clean} | {arr_clean} | {dur_raw}")
+
             await browser.close()
 
             if not results:
-                return "I reached the page, but the train list was empty. There might be no trains on this date."
+                return "I reached the page, but could not extract the train details. Please check the website layout."
+            
+            print("Result's Found!!")
             return "\n".join(results[:10])
         
     except Exception as e:
         print("Search Train Failed while Running!!")
         print(e)
+        return "Sorry, I encountered an error while searching for trains."
 
 async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: str) -> str:
     print(f"Checking Seat Availability of Train Number #{trainnumber}: {fromstation} to {tostation} on {date}")
