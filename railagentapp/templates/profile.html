@@ -1,66 +1,128 @@
 <!DOCTYPE html>
 <html>
-<head><title>My Profile - RailAgent</title></head>
-<body style="font-family: Arial; padding: 20px; background-color: #f4f4f9;">
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 20px;">
-        <h2 style="margin: 0;">🚂 {{ request.user.username }}'s Passenger List</h2>
-        <div>
-            <a href="{% url 'index' %}" style="padding: 10px 15px; background: #0056b3; color: white; text-decoration: none; border-radius: 5px;">Back to Chat</a>
-            <a href="{% url 'logout' %}" style="padding: 10px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">Logout</a>
+<head>
+    <title>Profiles - RailAgent AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-gradient: radial-gradient(circle at 50% 0%, #16192b 0%, #08090d 100%); --glass-bg: rgba(23, 25, 38, 0.45); --glass-border: rgba(255, 255, 255, 0.06); --text-main: #f3f4f6; --text-muted: #9ca3af; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg-gradient); color: var(--text-main); margin: 0; padding: 40px 20px; min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 1000px; display: flex; flex-direction: column; gap: 30px; animation: fadeIn 0.6s ease; }
+        
+        /* Headers */
+        .page-header { display: flex; justify-content: space-between; align-items: center; background: var(--glass-bg); padding: 20px 30px; border-radius: 20px; border: 1px solid var(--glass-border); backdrop-filter: blur(20px); }
+        .page-header h2 { font-family: 'Space Grotesk', sans-serif; margin: 0; font-size: 1.8em; color: #fff; }
+        .nav-btns a { padding: 10px 20px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 0.9em; transition: 0.2s; margin-left: 10px; }
+        .btn-back { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--glass-border); }
+        .btn-back:hover { background: rgba(255,255,255,0.1); }
+        
+        /* Grid Layout for logic sections */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
+        @media (max-width: 800px) { .dashboard-grid { grid-template-columns: 1fr; } }
+        
+        .panel { background: var(--glass-bg); padding: 30px; border-radius: 24px; border: 1px solid var(--glass-border); backdrop-filter: blur(20px); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+        .panel h3 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 20px 0; font-size: 1.4em; color: #c084fc; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
+        
+        /* Passenger Cards */
+        .passenger-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+        .p-card { background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; position: relative; transition: 0.2s; }
+        .p-card:hover { border-color: rgba(167, 139, 250, 0.3); transform: translateY(-2px); }
+        .p-card h4 { margin: 0 0 10px 0; font-size: 1.2em; color: #fff; }
+        .p-card p { margin: 5px 0; font-size: 0.9em; color: var(--text-muted); }
+        .p-card strong { color: #a78bfa; }
+        .delete-btn { position: absolute; top: 15px; right: 15px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); padding: 5px 10px; border-radius: 8px; text-decoration: none; font-size: 0.8em; font-weight: bold; transition: 0.2s; }
+        .delete-btn:hover { background: rgba(239, 68, 68, 0.3); }
+
+        /* Forms */
+        input, select { width: 100%; padding: 14px 18px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); color: white; font-family: inherit; font-size: 0.95em; box-sizing: border-box; outline: none; transition: 0.3s; }
+        select option { background: #16192b; color: white; }
+        input:focus, select:focus { border-color: rgba(189, 65, 255, 0.81); box-shadow: 0 0 15px rgba(189, 65, 255, 0.15); }
+        button { width: 100%; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, #b554fb 0%, #6c01a6 100%); color: white; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 5px 15px rgba(156, 34, 238, 0.2); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(55, 2, 74, 0.4); }
+        
+        .alert { padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: 500; font-size: 0.95em; }
+        .alert-success { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.3); color: #34d399; }
+        .alert-error { background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); color: #f87171; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div class="page-header">
+            <h2>User Profile Configurations</h2>
+            <div class="nav-btns">
+                <a href="{% url 'index' %}" class="btn-back"> Back to Agent</a>
+            </div>
         </div>
-    </div>
 
-    <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 20px;">
-        <h3 style="margin-top: 0;">Account Settings</h3>
-        <form method="POST" style="display: flex; gap: 10px; align-items: center;">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="update_email">
-            <label><strong>Receive Seat Alerts At:</strong></label>
-            <input type="email" name="new_email" value="{{ request.user.email }}" required style="padding: 8px; width: 300px; border: 1px solid #ccc; border-radius: 4px;">
-            <button type="submit" style="padding: 8px 15px; background: #ffc107; color: black; border: none; border-radius: 5px; cursor: pointer;">Update Email</button>
-        </form>
-        {% if success_message %}<p style="color: green; margin-bottom: 0;">{{ success_message }}</p>{% endif %}
-        {% if error_message %}<p style="color: red; margin-bottom: 0;">{{ error_message }}</p>{% endif %}
-    </div>
+        {% if success_message %}<div class="alert alert-success">{{ success_message }}</div>{% endif %}
+        {% if error_message %}<div class="alert alert-error">⚠️ {{ error_message }}</div>{% endif %}
 
-    <div style="display: flex; gap: 20px;">
-        <div style="flex: 2;">
-            <h3>Saved Passengers</h3>
-            {% for person in passengers %}
-                <div style="background: white; padding: 15px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong>{{ person.full_name }}</strong> (Age: {{ person.age }}, Gender: {{ person.gender }})<br>
-                        <small style="color: gray;">Berth Preference: {{ person.get_berth_preference_display }}</small>
+        <div class="dashboard-grid">
+            
+            <div class="panel" style="display: flex; flex-direction: column;">
+                <h3>Active Traveler Profiles</h3>
+                
+                {% if passengers %}
+                <div class="passenger-grid">
+                    {% for person in passengers %}
+                    <div class="p-card">
+                        <a href="{% url 'delete_passenger' person.id %}" class="delete-btn" onclick="return confirm('Are you sure you want to Delete this profile?');">Delete</a>
+                        <h4>{{ person.full_name }}</h4>
+                        <p>Age: <strong>{{ person.age }}</strong></p>
+                        <p>Gender: <strong>{{ person.gender }}</strong></p>
+                        <p>Pref: <strong>{{ person.get_berth_preference_display }}</strong></p>
                     </div>
-                    <a href="{% url 'delete_passenger' person.id %}" style="color: red; text-decoration: none; font-weight: bold;">🗑️ Remove</a>
+                    {% endfor %}
                 </div>
-            {% empty %}
-                <p style="color: gray;">No passengers saved yet.</p>
-            {% endfor %}
-        </div>
+                {% else %}
+                <p style="color: var(--text-muted); font-style: italic;">No active travelers found. Add one to enable booking capabilities.</p>
+                {% endif %}
+            </div>
 
-        <div style="flex: 1; background: white; padding: 20px; border: 1px solid #ccc; border-radius: 8px; height: fit-content;">
-            <h3>Add New Passenger</h3>
-            <form method="POST">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add_passenger">
-                <input type="text" name="full_name" placeholder="Full Name" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
-                <input type="number" name="age" placeholder="Age" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
-                <select name="gender" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
-                    <option value="" disabled selected>Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                </select>
-                <select name="berth" required style="width: 100%; padding: 8px; margin-bottom: 10px;">
-                    <option value="NO">No Preference</option>
-                    <option value="LB">Lower</option>
-                    <option value="MB">Middle</option>
-                    <option value="UB">Upper</option>
-                    <option value="SL">Side Lower</option>
-                </select>
-                <button type="submit" style="width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px;">➕ Add Passenger</button>
-            </form>
+            <div style="display: flex; flex-direction: column; gap: 30px;">
+                
+                <div class="panel">
+                    <h3>New Traveler Profile</h3>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_passenger">
+                        
+                        <input type="text" name="full_name" placeholder="Full Name as per ID" required>
+                        <input type="number" name="age" placeholder="Age" required>
+                        <select name="gender" required>
+                            <option value="" disabled selected>Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                        <select name="berth" required>
+                            <option value="NO">No Berth Preference</option>
+                            <option value="LB">Lower Berth</option>
+                            <option value="MB">Middle Berth</option>
+                            <option value="UB">Upper Berth</option>
+                            <option value="SL">Side Lower</option>
+                        </select>
+                        <button type="submit">Create & Save</button>
+                    </form>
+                </div>
+
+                <div class="panel">
+                    <h3>System Alerts Email</h3>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_email">
+                        
+                        <p style="font-size: 0.85em; color: var(--text-muted); margin-top: -5px; margin-bottom: 15px;">Target email for tracking alert notifications.</p>
+                        <input type="email" name="new_email" value="{{ request.user.email }}" placeholder="Enter new alert email" required>
+                        <button type="submit" style="background: rgba(255,255,255,0.1); box-shadow: none; border: 1px solid var(--glass-border);">Update Pipeline</button>
+                    </form>
+                </div>
+
+            </div>
+
         </div>
     </div>
 
