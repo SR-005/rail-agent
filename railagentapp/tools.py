@@ -39,6 +39,7 @@ STATIONCODES={
     "kochi": "ERS" 
 }
 
+active_trackers = {}
 
 async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
     print(f"Searching train searchtrains for: {fromstation} to {tostation} on {date}")
@@ -185,14 +186,27 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
     )
 
 async def trackstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, user_email: str,) -> str:
-    asyncio.create_task(monitorstatus(trainnumber, fromstation, tostation, date, coach, user_email))
+    if trainnumber in active_trackers:
+        active_trackers[trainnumber].cancel()
+
+    task=asyncio.create_task(monitorstatus(trainnumber, fromstation, tostation, date, coach, user_email))
+    active_trackers[trainnumber] = task
     return (
         f"Success! I have deployed a background agent to monitor Train {trainnumber} "
         f"for {coach} class. It will check silently every 3 minutes."
     )
 
+async def stoptracking(trainnumber: str) -> str:
+    if trainnumber in active_trackers:
+        active_trackers[trainnumber].cancel() # Kills the while loop!
+        del active_trackers[trainnumber]
+        print(f"\n[System] 🛑 Tracker for Train {trainnumber} has been manually stopped.")
+        return f"Successfully stopped the background tracker for Train {trainnumber}."
+    else:
+        return f"I am not currently tracking Train {trainnumber}."
+
 #threaded monitor function
-async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, user_email: str,interval: int = 3) -> str:
+async def monitorstatus(trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, user_email: str,interval: int = 1) -> str:
     print(f"Background monitoring started for Train {trainnumber} ({coach}). Checking every {interval} mins...")
 
     while True:

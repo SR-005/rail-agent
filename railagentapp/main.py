@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_core.tools import Tool, StructuredTool
 from langchain_google_genai import ChatGoogleGenerativeAI
-from railagentapp.tools import searchtrains, trackstatus, checkseats, normalbooking
-from models import TrainSearchInput, CheckSeatInput, TrackStatusInput, BookingInput
+from railagentapp.tools import searchtrains, trackstatus, checkseats, normalbooking, stoptracking
+from models import TrainSearchInput, CheckSeatInput, TrackStatusInput, BookingInput, StopTrackingInput
 
 load_dotenv()
 
@@ -52,6 +52,13 @@ def build_agent():
                 "If the user hasn't explicitly chosen a train, run SearchTrains, show them the list, and STOP. Ask them to pick one first! "
                 "YOU MUST ALSO extract the user's email address from the System Note and pass it into the 'user_email' parameter. "
                 "Once executed successfully, inform the user that the monitor is silently running in the background and will sound a loud audio alarm if a seat opens up."
+            )
+        ),
+
+        StructuredTool.from_function(name="StopTracking", func=None, coroutine=stoptracking, args_schema=StopTrackingInput,
+            description=(
+                "Use this tool immediately if the user asks to stop, cancel, or halt tracking for a train. "
+                "You must provide the 5-digit train number that is currently being tracked."
             )
         ),
 
