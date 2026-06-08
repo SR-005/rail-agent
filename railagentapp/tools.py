@@ -48,63 +48,61 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
         fromcode = STATIONCODES.get(fromstation.lower())
         tocode = STATIONCODES.get(tostation.lower())
         if not fromcode or not tocode:
-            return "Could not find Station Codes for these Stations. Please Retry with Major Stations"
+            return "Could not find Station Codes. Please use major station names."
 
         url = f"https://www.confirmtkt.com/rbooking/trains/from/{fromcode}/to/{tocode}/{date}"
+        
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-
             page = await context.new_page()
-            await page.goto(url, wait_until="networkidle")
-            await asyncio.sleep(5)
             
-            content = await page.content()
-            if "No trains found" in content:
+            await page.goto(url)
+            
+            # 🟢 FIX: Wait for the specific train row container to be present in the DOM
+            try:
+                await page.wait_for_selector('div[id^="train-"]', timeout=15000)
+            except Exception:
                 await browser.close()
-                return f"No trains found for {fromstation} to {tostation} on {date}."
+                return "Failed to load train list. The website might be blocking us or slow to respond."
 
-            # 🟢 UPDATED: Targeting the specific train cards found in image_a461b0.png
+            # Optional: Short pause to let dynamic content settle
+            await asyncio.sleep(2)
+            
             train_cards = await page.query_selector_all('div[id^="train-"]')
             results = []
 
             for card in train_cards:
-                # Get the train number from the ID
-                train_id = await card.get_attribute("id")
-                train_number = train_id.replace("train-", "")
-                
-                # Extract the train name
-                name_element = await card.query_selector(".text-neutral-800.body-sm")
-                train_name = (await name_element.inner_text()).strip() if name_element else "Unknown Train"
-                
-                # 🟢 Extracting times and duration based on image_a461b0.png structure
-                time_elements = await card.query_selector_all('div.body-sm.text-left.font-medium')
-                duration_element = await card.query_selector('p.body-xs.inline-block.text-secondary')
-                
-                if len(time_elements) >= 2 and duration_element:
-                    dep_raw = await time_elements[0].inner_text() # e.g., "01:10 ERN"
-                    arr_raw = await time_elements[1].inner_text() # e.g., "01:33 AWY"
-                    dur_raw = await duration_element.inner_text() # e.g., "0h 23m"
+                try:
+                    train_id = await card.get_attribute("id")
+                    train_number = train_id.replace("train-", "")
                     
-                    # Clean the station codes out to leave only the time
-                    dep_clean = dep_raw.split()[0]
-                    arr_clean = arr_raw.split()[0]
+                    # Target the name and times directly
+                    name_el = await card.query_selector(".body-sm.text-neutral-800")
+                    train_name = (await name_el.inner_text()).strip() if name_el else "Unknown Train"
                     
-                    # Format as the secret code for the frontend interceptor
-                    results.append(f"[TRAIN] {train_number} | {train_name} | {dep_clean} | {arr_clean} | {dur_raw}")
+                    times = await card.query_selector_all('div.body-sm.text-left.font-medium')
+                    dur = await card.query_selector('p.body-xs.inline-block.text-secondary')
+                    
+                    if len(times) >= 2 and dur:
+                        dep = (await times[0].inner_text()).split()[0]
+                        arr = (await times[1].inner_text()).split()[0]
+                        d = await dur.inner_text()
+                        
+                        results.append(f"[TRAIN] {train_number} | {train_name} | {dep} | {arr} | {d}")
+                except Exception as e:
+                    continue # Skip cards that don't match our structure
 
             await browser.close()
 
             if not results:
-                return "I reached the page, but could not extract the train details. Please check the website layout."
+                return "I found the page, but no train data could be extracted."
             
-            print("Result's Found!!")
             return "\n".join(results[:10])
-        
+
     except Exception as e:
-        print("Search Train Failed while Running!!")
-        print(e)
-        return "Sorry, I encountered an error while searching for trains."
+        print(f"Error in searchtrains: {e}")
+        return "An error occurred while searching for trains."
 
 async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: str) -> str:
     print(f"Checking Seat Availability of Train Number #{trainnumber}: {fromstation} to {tostation} on {date}")

@@ -425,50 +425,53 @@
             }
         }
 
-        /* 🟢 NEW: Train Card Styles */
+        /* 🟢 ULTIMATE SLIM TRAIN CARDS */
         .train-card {
+            display: flex;
+            align-items: center; /* Forces everything onto one horizontal axis */
+            gap: 15px;           /* Space between number/name and the times */
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(167, 139, 250, 0.3);
-            border-radius: 16px;
-            padding: 18px;
-            margin: 12px 0;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-            transition: all 0.2s ease;
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            border-radius: 6px;
+            padding: 4px 10px;   /* Very thin padding */
+            margin: 4px 0;
+            font-size: 0.85em;   /* Smaller overall text */
         }
-        .train-card:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(167, 139, 250, 0.6);
-            transform: translateX(4px);
-        }
+
+        /* The Name/Number Section */
         .train-card h4 {
-            margin: 0 0 12px 0;
+            margin: 0;
+            white-space: nowrap; /* Keeps number and name on one line */
             color: #ffffff;
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.15em;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            padding-bottom: 10px;
+            font-size: 0.9em;
+            flex-shrink: 0;      /* Don't let the name squish */
         }
+
+        /* The Container for times */
         .train-details {
             display: flex;
+            flex: 1;             /* Takes up remaining space */
             justify-content: space-between;
             align-items: center;
         }
+
+        /* Individual time labels */
         .train-time {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 4px;
         }
+
         .train-time span {
-            font-size: 1.2em;
             font-weight: 700;
             color: #c084fc;
-            margin-top: 4px;
         }
+
         .train-time small {
             color: var(--text-muted);
-            font-size: 0.8em;
+            font-size: 0.7em;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
     </style>
 </head>
@@ -596,15 +599,16 @@
             let formattedMessage = data.message;
 
             const trainRegex = /\[TRAIN\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n]+)(?:\|\s*([^\n]+))?/g;
+            // Use this updated regex logic:
             formattedMessage = formattedMessage.replace(trainRegex, function(match, no, name, dep, arr, extra) {
-                let extraHtml = extra ? `<div class="train-time" style="text-align: center;"><small>Duration</small><span style="color: #34d399; font-size: 0.9em;">${extra.trim()}</span></div>` : '';
+                let durHtml = extra ? `<div class="train-time"><small>D:</small><span>${extra.trim()}</span></div>` : '';
                 return `
                 <div class="train-card">
-                    <h4>🚂 ${no.trim()} - ${name.trim()}</h4>
+                    <h4>🚂 ${no.trim()} | ${name.trim()}</h4>
                     <div class="train-details">
-                        <div class="train-time"><small>Depart</small><span>${dep.trim()}</span></div>
-                        ${extraHtml}
-                        <div class="train-time" style="text-align: right;"><small>Arrive</small><span>${arr.trim()}</span></div>
+                        <div class="train-time"><small>DEP</small><span>${dep.trim()}</span></div>
+                        ${durHtml}
+                        <div class="train-time"><small>ARR</small><span>${arr.trim()}</span></div>
                     </div>
                 </div>`;
             });

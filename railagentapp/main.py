@@ -102,6 +102,17 @@ def build_agent():
         "\n- MANDATORY: Once a search is done, the cities and date are 'LOCKED'. Re-use them for CheckSeats."
         "\n- TRAIN NUMBER: The 5-digit number (e.g., 16347) is the primary key. Extract it from your own previous message."
         "\n- DATA INTEGRITY: Never invent cities like Bangalore or Delhi. Use only what the user provided."
+
+        '''
+        When presenting a list of trains to the user, you MUST extract the times from your search tool and use this EXACT pipe-separated format for EVERY train on a new line:
+        [TRAIN] TrainNumber | TrainName | DepartureTime | ArrivalTime | Duration
+
+        Example:
+        [TRAIN] 16343 | Amritha Exp | 22:30 | 06:15 | 07h 45m
+        [TRAIN] 16349 | Rajya Rani Exp | 01:05 | 08:20 | 07h 15m
+
+        Never use standard numbered lists for trains. Only use the [TRAIN] tag.
+        '''
         )
     return agent
 
