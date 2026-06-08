@@ -6,7 +6,8 @@ from .models import PassengerProfile
 
 @login_required(login_url='/login/')
 def index(request):
-    return render(request, 'homepage.html')
+    passengers = PassengerProfile.objects.filter(user=request.user)
+    return render(request, 'homepage.html', {'passengers': passengers})
 
 def register_view(request):
     if request.method=='POST':

@@ -1,89 +1,474 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>RailAgent UI</title>
+    <title>RailAgent AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
-        #chat-log { 
-            width: 100%; 
-            height: 500px; 
-            border: 1px solid #ccc; 
-            background: white; 
-            padding: 15px; 
-            overflow-y: scroll; 
-            margin-bottom: 10px; 
-            border-radius: 5px; 
-        }
-        
-        /* 🟢 THE CSS FIX: Applied directly to the message blocks */
-        .user-msg, .bot-msg, .sys-msg {
-            margin-bottom: 15px;
-            line-height: 1.5;
-            white-space: pre-wrap; /* Forces the browser to respect spaces and breaks */
-            word-wrap: break-word;
+        :root {
+            --bg-gradient: radial-gradient(circle at 50% 0%, #16192b 0%, #08090d 100%);
+            --glass-bg: rgba(23, 25, 38, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
         }
 
-        .user-msg { color: #0056b3; font-weight: bold; }
-        .bot-msg { color: #28a745; }
-        .sys-msg { color: #6c757d; font-style: italic; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg-gradient); 
+            color: var(--text-main);
+            margin: 0; 
+            padding: 30px; 
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .desktop-stage {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+            max-width: 1700px;
+            margin: 0 auto;
+            height: calc(100vh - 60px);
+        }
+
+        /* 🚀 LEFT SECTION: LANDING + CHAT ENGINE (75%) */
+        .main-engine {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Cinematic Top Landing Section */
+        .landing-hero {
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 10px;
+        }
+
+        .hero-titles h1 { 
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 3.2em; 
+            font-weight: 700;
+            margin: 0;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            background: linear-gradient(180deg, #ffffff 30%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(167, 139, 250, 0.15));
+        }
+        .hero-titles p { 
+            margin: 8px 0 0 0; 
+            color: var(--text-muted); 
+            font-size: 1.1em; 
+            font-weight: 400; 
+            letter-spacing: 0.2px;
+        }
+
+        .quick-nav {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 6px 6px 6px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+        .quick-nav .user-status {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-right: 4px;
+        }
+
+        /* Ultra-sleek pills */
+        .pill-btn {
+            padding: 8px 18px; 
+            border-radius: 20px; 
+            text-decoration: none; 
+            font-weight: 600; 
+            font-size: 0.85em;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .pill-logout { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .pill-logout:hover { background: rgba(239, 68, 68, 0.25); }
+
+        /* Translucent Glass Chat Log Window */
+        #chat-log { 
+            flex: 1;
+            background: var(--glass-bg); 
+            border-radius: 24px; 
+            padding: 30px; 
+            overflow-y: auto; 
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        /* Custom minimal scrollbars */
+        #chat-log::-webkit-scrollbar, .sidebar-panel::-webkit-scrollbar { width: 5px; }
+        #chat-log::-webkit-scrollbar-thumb, .sidebar-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
         
-        input[type="text"] { width: 80%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
-        button { padding: 10px 20px; border-radius: 5px; background: #0056b3; color: white; border: none; cursor: pointer; }
+        /* 🎯 Floating Big Welcome Text (Centered in Chat Box) */
+        .welcome-text {
+            align-self: center;
+            margin: auto;
+            text-align: center;
+            max-width: 80%;
+            animation: fadeIn 0.8s ease;
+        }
+        .welcome-text h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 3em;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1.2;
+            letter-spacing: -1px;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 4px 24px rgba(167, 139, 250, 0.4); 
+        }
+        .welcome-text p {
+            font-size: 1.3em;
+            font-weight: 500;
+            color: rgba(167, 139, 250, 0.85);
+            margin-top: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Fine-Tuned Chat Bubbles */
+        .msg-bubble {
+            padding: 14px 20px;
+            border-radius: 20px;
+            max-width: 70%;
+            line-height: 1.6;
+            font-size: 0.95em;
+            white-space: pre-wrap; 
+            word-wrap: break-word;
+        }
+        .user-msg { 
+            background: rgba(167, 139, 250, 0.15); 
+            align-self: flex-end; 
+            color: #ffffff; 
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            border-bottom-right-radius: 4px;
+        }
+        .bot-msg { 
+            background: rgba(255, 255, 255, 0.04); 
+            align-self: flex-start; 
+            color: #f3f4f6; 
+            border: 1px solid rgba(255,255,255,0.06);
+            border-bottom-left-radius: 4px;
+        }
+        .sys-msg { 
+            background: rgba(0, 0, 0, 0.2); 
+            align-self: center; 
+            color: var(--text-muted); 
+            font-style: italic; 
+            font-size: 0.85em; 
+            padding: 6px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--glass-border);
+        }
+
+        /* The Animated Thinking Indicator */
+        #thinking-indicator {
+            display: none; 
+            align-self: flex-start;
+            background: rgba(189, 65, 255, 0.05);
+            border: 1px solid rgba(189, 65, 255, 0.3);
+            color: #b554fb;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 15px rgba(189, 65, 255, 0.1);
+            animation: pulseBorder 1.5s infinite alternate;
+        }
+
+        @keyframes pulseBorder {
+            from { box-shadow: 0 0 5px rgba(189, 65, 255, 0.1); border-color: rgba(189, 65, 255, 0.2); }
+            to { box-shadow: 0 0 20px rgba(189, 65, 255, 0.4); border-color: rgba(189, 65, 255, 0.6); }
+        }
+
+        .typing-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+        /* Chat Input Section */
+        .input-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        #chat-message-input { 
+            flex: 1; 
+            padding: 18px 24px; 
+            border-radius: 20px; 
+            border: 1px solid var(--glass-border); 
+            background: var(--glass-bg); 
+            color: var(--text-main);
+            font-size: 1em;
+            backdrop-filter: blur(20px);
+            outline: none;
+            transition: all 0.3s ease;
+            border-color: rgb(72, 4, 108);
+        }
+
+        #chat-message-input:focus { 
+            /* Electric Cyan glow for the typing bar changed to match purple theme */
+            border-color: rgba(189, 65, 255, 0.81);
+        }
+
+        #chat-message-submit { 
+            padding: 0 35px; 
+            border-radius: 20px; 
+            /* Vibrant Cyan to Emerald gradient changed to deep purple */
+            background: linear-gradient(135deg, #b554fb 0%, #6c01a6 100%); 
+            color: #08090d; 
+            font-weight: 700; 
+            font-size: 1em;
+            border: none; 
+            cursor: pointer; 
+            /* Bright shadow changed to match purple theme */
+            box-shadow: 0 10px 25px rgba(156, 34, 238, 0.25);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        #chat-message-submit:hover { 
+            opacity: 0.95;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(55, 2, 74, 0.4);
+        }
+
+        /* 📋 RIGHT SECTION: STEALTH SIDEBAR (25%) */
+        .sidebar-panel {
+            flex: 1;
+            background: var(--glass-bg);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .sidebar-panel h3 { 
+            margin: 0; 
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.2em; 
+            font-weight: 500; 
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        /* Floating Modern Passenger Cards */
+        .passenger-glass-card {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.2s ease;
+        }
+        .passenger-glass-card:hover { 
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(167, 139, 250, 0.2);
+            transform: translateX(-2px);
+        }
+        .passenger-glass-card h4 { margin: 0 0 10px 0; color: #ffffff; font-size: 1.05em; font-weight: 600; }
+        .tag-row { display: flex; gap: 8px; font-size: 0.8em; }
+        .pill-tag {
+            background: rgba(255,255,255,0.04);
+            padding: 4px 10px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+        .pill-tag strong { color: var(--text-main); }
+        .pref-glow { color: #60a5fa; font-weight: 600; }
+        
+        .empty-sidebar { 
+            color: var(--text-muted); 
+            font-style: italic; 
+            font-size: 0.85em; 
+            text-align: center; 
+            margin: auto 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        /* Giant sidebar action button anchored to the bottom */
+        .sidebar-action-btn {
+            margin-top: auto; 
+            display: block;
+            text-align: center;
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #f3f4f6;
+            text-decoration: none;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        .sidebar-action-btn:hover {
+            background: rgba(167, 139, 250, 0.15);
+            border-color: rgba(167, 139, 250, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(167, 139, 250, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 15px;">
-        <h2 style="margin: 0; color: #0056b3;">🚂 RailAgent AI</h2>
-        <div>
-            <span style="margin-right: 15px; color: gray;">Welcome, {{ request.user.username }}!</span>
-            <a href="{% url 'profile' %}" style="padding: 8px 15px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">Manage Passengers</a>
-            <a href="{% url 'logout' %}" style="padding: 8px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;">Logout</a>
-        </div>
-    </div>
+    <div class="desktop-stage">
+        
+        <div class="main-engine">
+            <header class="landing-hero">
+                <div class="hero-titles">
+                    <h1>RailAgent</h1>
+                    <p>Next-Gen Neural Train Routing & Automation</p>
+                </div>
+                <div class="quick-nav">
+                    <span class="user-status">System Connected &nbsp;•&nbsp; <strong>{{ request.user.username }}</strong></span>
+                    <a href="{% url 'logout' %}" class="pill-btn pill-logout">Exit</a>
+                </div>
+            </header>
 
-    <div id="chat-log"></div>
-    
-    <input id="chat-message-input" type="text" placeholder="Tell the agent what to do..." autofocus>
-    <button id="chat-message-submit">Send</button>
+            <div id="chat-log">
+                <div class="welcome-text" id="welcome-banner">
+                    <h2>Welcome back, {{ request.user.username }}!</h2>
+                    <p>Your passenger profile is loaded.</p>
+                </div>
+            </div>
+            
+            <div class="input-container">
+                <input id="chat-message-input" type="text" placeholder="Initialize command pattern (e.g., Search trains from Aluva to Ernakulam on Friday)..." autofocus>
+                <button id="chat-message-submit">Execute</button>
+            </div>
+        </div>
+
+        <aside class="sidebar-panel">
+            <h3>Traveler Manifest</h3>
+            
+            {% for person in passengers %}
+            <div class="passenger-glass-card">
+                <h4>{{ person.full_name }}</h4>
+                <div class="tag-row">
+                    <div class="pill-tag">Age: <strong>{{ person.age }}</strong></div>
+                    <div class="pill-tag">Sex: <strong>{{ person.gender }}</strong></div>
+                </div>
+                <div class="tag-row" style="margin-top: 8px;">
+                    <div class="pill-tag" style="width: 100%;">Preference: <span class="pref-glow">{{ person.get_berth_preference_display }}</span></div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-sidebar">
+                <p>No traveler profiles indexed.</p>
+                <p style="margin-top: 8px; color: #a78bfa;">Click below to add records.</p>
+            </div>
+            {% endfor %}
+
+            <a href="{% url 'profile' %}" class="sidebar-action-btn">Configure Profiles</a>
+        </aside>
+
+    </div>
 
     <script>
         const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/railagentapp/');
         const chatLog = document.querySelector('#chat-log');
+        const welcomeBanner = document.querySelector('#welcome-banner');
+
+        // Create the thinking indicator element once
+        const thinkingIndicator = document.createElement('div');
+        thinkingIndicator.id = 'thinking-indicator';
+        thinkingIndicator.className = 'msg-bubble typing-dots';
 
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
+
+            // Handle dynamic tool updates from Python
+            if (data.type === 'tool_update') {
+                thinkingIndicator.style.display = 'block';
+                thinkingIndicator.innerText = data.message;
+                chatLog.appendChild(thinkingIndicator);
+                chatLog.scrollTop = chatLog.scrollHeight;
+                return; 
+            }
+
+            // Hide the thinking indicator when a final message arrives
+            thinkingIndicator.style.display = 'none';
+
             let messageClass = 'bot-msg';
-            
             if (data.type === 'system' || data.type === 'status') messageClass = 'sys-msg';
             if (data.type === 'error') messageClass = 'sys-msg';
 
-            // 🟢 THE JS FIX: Catch all newline variants and convert Gemini's **bold** text
             let formattedMessage = data.message;
-            
-            // 1. Convert newlines to HTML breaks (handles both \n and \r\n)
             formattedMessage = formattedMessage.replace(/\r?\n/g, '<br>');
-            
-            // 2. Bonus: Convert Gemini's markdown **text** to HTML <b>text</b>
             formattedMessage = formattedMessage.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
-            chatLog.innerHTML += `<div class="${messageClass}">${formattedMessage}</div>`;
+            chatLog.innerHTML += `<div class="msg-bubble ${messageClass}">${formattedMessage}</div>`;
             chatLog.scrollTop = chatLog.scrollHeight; 
         };
 
         chatSocket.onclose = function(e) {
             console.error('Chat socket closed unexpectedly');
-            chatLog.innerHTML += `<div class="sys-msg">❌ Connection to server lost.</div>`;
+            chatLog.innerHTML += `<div class="msg-bubble sys-msg">❌ Core server connection terminated.</div>`;
         };
 
         document.querySelector('#chat-message-submit').onclick = function(e) {
+            if (welcomeBanner) { welcomeBanner.style.display = 'none'; }
+
             const messageInputDom = document.querySelector('#chat-message-input');
             const message = messageInputDom.value;
             if (message.trim() === "") return;
 
-            chatLog.innerHTML += `<div class="user-msg">👤 You: ${message}</div>`;
+            // 1. Append user message
+            chatLog.innerHTML += `<div class="msg-bubble user-msg">👤 You: ${message}</div>`;
+            
+            // 2. Append thinking animation instantly
+            thinkingIndicator.style.display = 'block';
+            thinkingIndicator.innerText = 'Analyzing request';
+            chatLog.appendChild(thinkingIndicator);
+
+            // 3. Send to server
             chatSocket.send(JSON.stringify({'message': message}));
             messageInputDom.value = ''; 
+            chatLog.scrollTop = chatLog.scrollHeight;
         };
 
         document.querySelector('#chat-message-input').onkeyup = function(e) {

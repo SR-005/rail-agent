@@ -1,8 +1,35 @@
 import json
+from langchain_core.callbacks import BaseCallbackHandler
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from railagentapp.models import PassengerProfile 
+from langchain_core.callbacks import AsyncCallbackHandler
 from railagentapp.main import railagent 
+
+class ToolStreamingCallback(AsyncCallbackHandler):
+    def __init__(self, websocket):
+        self.websocket = websocket
+
+    async def on_tool_start(self, serialized: dict, input_str: str, **kwargs):
+        """Fires exactly when the AI decides to use a tool."""
+        tool_name = serialized.get("name", "tool")
+        
+        # Map your tool names to cool, user-friendly status messages
+        messages = {
+            "SearchTrains": "Accessing IRCTC database for train schedules",
+            "CheckSeats": "Scanning live seat availability matrices",
+            "TrackStatus": "Deploying background tracking daemon",
+            "BookTrainTicket": "Initiating automated IRCTC booking sequence",
+            "StopTracking": "Halting background tracker"
+        }
+        
+        status_msg = messages.get(tool_name, f"Executing {tool_name}")
+        
+        # Send the live update to the frontend via WebSocket
+        await self.websocket.send(text_data=json.dumps({
+            'type': 'tool_update',
+            'message': status_msg
+        }))
 
 class RailAgentConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -36,11 +63,6 @@ class RailAgentConsumer(AsyncWebsocketConsumer):
             }
         ]
 
-        #Greet the user in the UI
-        await self.send(text_data=json.dumps({
-            'type': 'system',
-            'message': f'Welcome back, {self.user.username}! Your passenger profile is loaded.'
-        }))
 
     @database_sync_to_async
     def get_passenger_profile(self):
@@ -62,12 +84,14 @@ class RailAgentConsumer(AsyncWebsocketConsumer):
 
         # Append the new message to this user's history
         self.chat_history.append({"role": "user", "content": usermessage})
-
-        # Send to LangChain
-        await self.send(text_data=json.dumps({'type': 'status', 'message': 'Agent is thinking...'}))
         
         try:
-            result=await railagent.ainvoke({"messages": self.chat_history})
+
+            result = await railagent.ainvoke(
+                {"messages": self.chat_history},
+                config={"callbacks": [ToolStreamingCallback(self)]}
+            )
+            
             agentreply=result['messages'][-1]
             
             if isinstance(agentreply.content, str):
@@ -94,3 +118,4 @@ class RailAgentConsumer(AsyncWebsocketConsumer):
                 'type': 'error',
                 'message': 'Sorry, my systems encountered an error while processing that.'
             }))
+
