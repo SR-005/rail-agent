@@ -160,13 +160,40 @@
             white-space: pre-wrap; 
             word-wrap: break-word;
         }
-        .user-msg { 
-            background: rgba(167, 139, 250, 0.15); 
-            align-self: flex-end; 
-            color: #ffffff; 
-            border: 1px solid rgba(167, 139, 250, 0.2);
+        /* 🟢 PREMIUM USER MESSAGE BUBBLE */
+        .user-msg {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(167, 139, 250, 0.05));
+            align-self: flex-end;
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            border-radius: 16px;
             border-bottom-right-radius: 4px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 120px;
+            max-width: 75%;
         }
+
+        .u-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.75em;
+            color: #c084fc;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(167, 139, 250, 0.2);
+            padding-bottom: 6px;
+        }
+
+        .u-text {
+            font-size: 0.95em;
+            color: #ffffff;
+            line-height: 1.4;
+            word-wrap: break-word; /* 🟢 Stops long text from messing up the box */
+        }
+        
         .bot-msg { 
             background: rgba(255, 255, 255, 0.04); 
             align-self: flex-start; 
@@ -470,6 +497,64 @@
             }
         }
 
+        /* 🟢 PREMIUM SEAT AVAILABILITY BADGES */
+        .seat-badge {
+            display: inline-flex;
+            flex-direction: column;
+            background: rgba(23, 25, 38, 0.9);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 4px 8px 4px 0;
+            min-width: 110px;
+            width: 110px; /* 🟢 Force fixed width to prevent squishing */
+            flex: 0 0 auto;
+            vertical-align: top;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .seat-badge:hover {
+            transform: translateY(-3px);
+            border-color: rgba(167, 139, 250, 0.6);
+            box-shadow: 0 12px 25px rgba(167, 139, 250, 0.15);
+        }
+
+        .seat-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .s-class {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25em;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+
+        .s-price {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #9ca3af;
+        }
+
+        .s-status {
+            font-size: 1.15em;
+            font-weight: 800;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        /* Dynamic Status Colors with subtle glow */
+        .s-avl { color: #34d399; text-shadow: 0 0 10px rgba(52, 211, 153, 0.2); } /* Green */
+        .s-wl { color: #f87171; text-shadow: 0 0 10px rgba(248, 113, 113, 0.2); }  /* Red */
+        .s-rac { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.2); }  /* Orange */
+
         /* 🟢 THE STACKED, POLISHED TRAIN CARD */
         
         .train-bubble {
@@ -479,25 +564,20 @@
 
         .train-card {
             display: flex;
-            flex-direction: column; 
-            gap: 12px; /* Beautiful breathing room between name and schedule */
+            flex-direction: column;
+            gap: 12px;
             background: rgba(23, 25, 38, 0.8);
             border: 1px solid rgba(167, 139, 250, 0.3);
-            border-radius: 12px; /* Slightly softer corners */
-            padding: 12px 16px; /* 🟢 Beautiful padding all around */
+            border-radius: 12px;
+            padding: 12px;
             margin: 8px 0;
-            width: 100%;
+            width: 100%; /* 🟢 Occupy full bubble width */
+            max-width: 100% !important; /* 🟢 Remove 500px limit */
             box-sizing: border-box;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-            overflow: hidden; 
-            transition: all 0.2s ease; /* Smooth hover transition */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
-        .train-card:hover {
-            border-color: rgba(167, 139, 250, 0.6);
-            background: rgba(30, 33, 48, 0.95);
-            transform: translateY(-2px); /* Premium floating effect on hover */
-        }
+        .train-card:hover { border-color: rgba(167, 139, 250, 0.6); }
 
         /* ROW 1: Number & Name */
         .train-header {
@@ -687,16 +767,14 @@
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
 
-            // Handle dynamic tool updates from Python
             if (data.type === 'tool_update') {
-                thinkingIndicator.style.display = 'flex'; // Use flex layout!
+                thinkingIndicator.style.display = 'flex'; 
                 thinkingIndicator.innerHTML = `<div class="ai-spinner"></div><span class="thinking-text">${data.message}</span>`;
                 chatLog.appendChild(thinkingIndicator);
                 chatLog.scrollTop = chatLog.scrollHeight;
                 return; 
             }
 
-            // Hide the thinking indicator when a final message arrives
             thinkingIndicator.style.display = 'none';
 
             let messageClass = 'bot-msg';
@@ -705,20 +783,18 @@
             
             let formattedMessage = data.message;
             let hasTrains = false;
+            let hasSeats = false; 
             let trainIndex = 1;
             
             const trainRegex = /\[TRAIN\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n]+)(?:\|\s*([^\n]+))?/g;
             formattedMessage = formattedMessage.replace(trainRegex, function(match, no, name, dep, arr, extra) {
                 hasTrains = true;
-                
-                // 🟢 FIX 1: Append .replace(/\n\s*/g, '') to strip physical newlines from the string
                 let durHtml = extra ? `
                 <div class="t-block">
                     <span class="t-dur-val">${extra.trim()}</span>
                     <span class="t-lbl">DUR</span>
                 </div>`.replace(/\n\s*/g, '') : '';
                 
-                // 🟢 FIX 1: Append .replace(/\n\s*/g, '') here too!
                 return `
                 <div class="train-card">
                     <div class="train-header">
@@ -741,18 +817,38 @@
                 </div>`.replace(/\n\s*/g, ''); 
             });
 
-            // Force bubble expansion for breathing room
-            if (hasTrains) {
+            // 🟢 SEAT AVAILABILITY INTERCEPTOR
+            const seatRegex = /\[SEAT\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n<]+)/g;
+            formattedMessage = formattedMessage.replace(seatRegex, function(match, cls, status, price) {
+                hasSeats = true; 
+                let s = status.trim().toUpperCase();
+                let colorClass = 's-avl'; 
+                if (s.includes('WL') || s.includes('WAITLIST') || s.includes('NOT')) colorClass = 's-wl'; 
+                if (s.includes('RAC')) colorClass = 's-rac'; 
+                
+                // .replace(/[\r\n]+/g, '') ensures no hidden line breaks exist
+                return `
+                <div class="seat-badge">
+                    <div class="seat-top">
+                        <span class="s-class">${cls.trim()}</span>
+                        <span class="s-price">${price.trim()}</span>
+                    </div>
+                    <div class="s-status ${colorClass}">${status.trim()}</div>
+                </div>`.replace(/[\r\n]+/g, '');
+            });
+
+            if (hasTrains || hasSeats) {
                 messageClass += ' train-bubble';
             }
-
-            // 🟢 FIX 2: Erase any leftover newlines between train cards BEFORE standard formatting
-            formattedMessage = formattedMessage.replace(/<\/div>\s*\n+/g, '</div>');
-            formattedMessage = formattedMessage.replace(/\n+\s*<div class="train-card">/g, '<div class="train-card">');
 
             // Standard formatting...
             formattedMessage = formattedMessage.replace(/\r?\n/g, '<br>');
             formattedMessage = formattedMessage.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+            // 🧹 CLEANUP VACUUM: Destroy jagged <br> tags injected between UI cards!
+            formattedMessage = formattedMessage.replace(/(<br>\s*)+<div class="seat-badge">/g, '<div class="seat-badge">');
+            formattedMessage = formattedMessage.replace(/(<br>\s*)+<div class="train-card">/g, '<div class="train-card">');
+            formattedMessage = formattedMessage.replace(/<\/div>\s*(<br>\s*)+/g, '</div>');
 
             chatLog.innerHTML += `<div class="msg-bubble ${messageClass}">${formattedMessage}</div>`;
             chatLog.scrollTop = chatLog.scrollHeight; 
@@ -770,15 +866,18 @@
             const message = messageInputDom.value;
             if (message.trim() === "") return;
 
-            // 1. Append user message
-            chatLog.innerHTML += `<div class="msg-bubble user-msg"><b>You:</b> ${message}</div>`;
+            // 1. Append user message (Premium Layout)
+            chatLog.innerHTML += `
+            <div class="msg-bubble user-msg">
+                <div class="u-name">👤 You</div>
+                <div class="u-text">${message}</div>
+            </div>`;
             
-            // 2. Append thinking animation instantly
-            thinkingIndicator.style.display = 'flex'; // Use flex layout!
+            // 2. Append thinking animation
+            thinkingIndicator.style.display = 'flex'; 
             thinkingIndicator.innerHTML = `<div class="ai-spinner"></div><span class="thinking-text">Agent is thinking...</span>`;
             chatLog.appendChild(thinkingIndicator);
 
-            // 3. Send to server
             chatSocket.send(JSON.stringify({'message': message}));
             messageInputDom.value = ''; 
             chatLog.scrollTop = chatLog.scrollHeight;
