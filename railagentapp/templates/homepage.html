@@ -188,30 +188,72 @@
             border: 1px solid var(--glass-border);
         }
 
+        /* 🟢 PREMIUM AI THINKING INDICATOR */
         #thinking-indicator {
-            display: none; 
+            display: none; /* Hidden by default */
             align-self: flex-start;
-            background: rgba(189, 65, 255, 0.05);
-            border: 1px solid rgba(189, 65, 255, 0.3);
-            color: #b554fb;
-            padding: 12px 24px;
-            border-radius: 20px;
-            font-size: 0.9em;
+            align-items: center;
+            gap: 12px;
+            background: rgba(23, 25, 38, 0.9);
+            border: 1px solid rgba(167, 139, 250, 0.4);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-family: 'Space Grotesk', sans-serif;
             font-weight: 600;
-            letter-spacing: 0.5px;
-            box-shadow: 0 0 15px rgba(189, 65, 255, 0.1);
-            animation: pulseBorder 1.5s infinite alternate;
+            font-size: 0.9em;
+            box-shadow: 0 4px 15px rgba(167, 139, 250, 0.15);
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
         }
 
-        @keyframes pulseBorder {
-            from { box-shadow: 0 0 5px rgba(189, 65, 255, 0.1); border-color: rgba(189, 65, 255, 0.2); }
-            to { box-shadow: 0 0 20px rgba(189, 65, 255, 0.4); border-color: rgba(189, 65, 255, 0.6); }
-        }
-
-        .typing-dots::after {
+        /* Animated Glowing Scanline */
+        #thinking-indicator::before {
             content: '';
-            animation: dots 1.5s steps(4, end) infinite;
+            position: absolute;
+            bottom: 0;
+            left: -100%;
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #b554fb, transparent);
+            animation: scanline 1.5s linear infinite;
         }
+
+        @keyframes scanline {
+            0% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        /* The Glowing Spinner */
+        .ai-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(167, 139, 250, 0.2);
+            border-top: 2px solid #b554fb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Shimmering Text Gradient */
+        .thinking-text {
+            background: linear-gradient(90deg, #ffffff, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
+            animation: pulseText 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseText {
+            0% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
         @keyframes dots {
             0%, 20% { content: ''; }
             40% { content: '.'; }
@@ -428,108 +470,116 @@
             }
         }
 
-        .train-card {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
+        /* 🟢 THE STACKED, POLISHED TRAIN CARD */
+        
+        .train-bubble {
             width: 100%;
-            box-sizing: border-box;
-
-            padding: 18px 24px;
-            margin: 12px 0;
-
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(167,139,250,0.15);
-            border-radius: 16px;
-
-            gap: 24px;
+            max-width: 95% !important; 
         }
 
-        .train-card-left {
+        .train-card {
+            display: flex;
+            flex-direction: column; 
+            gap: 12px; /* Beautiful breathing room between name and schedule */
+            background: rgba(23, 25, 38, 0.8);
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            border-radius: 12px; /* Slightly softer corners */
+            padding: 12px 16px; /* 🟢 Beautiful padding all around */
+            margin: 8px 0;
+            width: 100%;
+            box-sizing: border-box;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            overflow: hidden; 
+            transition: all 0.2s ease; /* Smooth hover transition */
+        }
+
+        .train-card:hover {
+            border-color: rgba(167, 139, 250, 0.6);
+            background: rgba(30, 33, 48, 0.95);
+            transform: translateY(-2px); /* Premium floating effect on hover */
+        }
+
+        /* ROW 1: Number & Name */
+        .train-header {
             display: flex;
             align-items: center;
-            gap: 18px;
-
-            flex: 1;
-            min-width: 250px;
+            gap: 12px; /* More space between badge and text */
+            width: 100%;
         }
 
         .train-index {
-            width: 34px;
-            height: 34px;
-
             display: flex;
             align-items: center;
             justify-content: center;
-
-            border-radius: 50%;
-            flex-shrink: 0;
-
-            background: rgba(167,139,250,0.15);
-            border: 1px solid rgba(167,139,250,0.3);
-
-            color: #c084fc;
-            font-weight: 700;
+            width: 30px; /* Slightly larger badge */
+            height: 30px;
+            background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 100%);
+            color: #08090d;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 800;
+            font-size: 0.9em;
+            border-radius: 8px; 
+            flex-shrink: 0; 
         }
 
-        .train-titles {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-
-            min-width: 0;
-        }
-
-        .t-no {
-            display: block;
-            color: #a78bfa;
-            font-size: 0.85rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .t-name {
-            display: block;
-
-            color: white;
-            font-size: 1rem;
+        .train-title-text {
+            color: #ffffff;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.05em; /* Larger, highly readable font */
             font-weight: 600;
-
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: nowrap; 
+            overflow: hidden;    
+            text-overflow: ellipsis; 
+            line-height: 1.2;
+            flex: 1;
         }
 
-        .train-details {
+        .train-title-text span {
+            color: #a78bfa; 
+            font-weight: 700;
+            margin-right: 6px;
+        }
+
+        /* ROW 2: Schedule Box */
+        .train-schedule {
             display: flex;
+            justify-content: space-between; 
             align-items: center;
-            gap: 36px;
-
-            background: rgba(0,0,0,0.25);
-
-            padding: 14px 28px;
-            border-radius: 12px;
-
-            flex-shrink: 0;
+            background: rgba(0, 0, 0, 0.35); /* Elegant translucent dark box */
+            padding: 8px 18px; /* 🟢 Luxurious padding inside the schedule block */
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        .train-time {
+        .t-block {
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
         }
 
-        .train-time small {
-            color: #9ca3af;
-            font-size: 0.7rem;
-            margin-bottom: 4px;
-        }
-
-        .train-time span {
-            color: #c084fc;
-            font-size: 1.2rem;
+        .t-time-val {
+            font-size: 1em; /* Bumped up for readability */
             font-weight: 700;
+            color: #e2e8f0;
+            line-height: 1.2;
+        }
+
+        .t-dur-val {
+            font-size: 0.9em; /* Bumped up */
+            font-weight: 700;
+            color: #34d399; 
+            line-height: 1.2;
+        }
+
+        .t-lbl {
+            font-size: 0.65em; /* Clearer labels */
+            font-weight: 700;
+            color: #9ca3af;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
         }
     </style>
 </head>
@@ -633,15 +683,14 @@
         // Create the thinking indicator element once
         const thinkingIndicator = document.createElement('div');
         thinkingIndicator.id = 'thinking-indicator';
-        thinkingIndicator.className = 'msg-bubble typing-dots';
 
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
 
             // Handle dynamic tool updates from Python
             if (data.type === 'tool_update') {
-                thinkingIndicator.style.display = 'block';
-                thinkingIndicator.innerText = data.message;
+                thinkingIndicator.style.display = 'flex'; // Use flex layout!
+                thinkingIndicator.innerHTML = `<div class="ai-spinner"></div><span class="thinking-text">${data.message}</span>`;
                 chatLog.appendChild(thinkingIndicator);
                 chatLog.scrollTop = chatLog.scrollHeight;
                 return; 
@@ -653,32 +702,53 @@
             let messageClass = 'bot-msg';
             if (data.type === 'system' || data.type === 'status') messageClass = 'sys-msg';
             if (data.type === 'error') messageClass = 'sys-msg';
-
-            let formattedMessage = data.message;
             
-            // 🟢 NEW: Initialize a counter that resets to 1 for every new AI message
+            let formattedMessage = data.message;
+            let hasTrains = false;
             let trainIndex = 1;
-
+            
             const trainRegex = /\[TRAIN\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n]+)(?:\|\s*([^\n]+))?/g;
             formattedMessage = formattedMessage.replace(trainRegex, function(match, no, name, dep, arr, extra) {
-                let durHtml = extra ? `<div class="train-time"><small>DUR</small><span>${extra.trim()}</span></div>` : '';
+                hasTrains = true;
+                
+                // 🟢 FIX 1: Append .replace(/\n\s*/g, '') to strip physical newlines from the string
+                let durHtml = extra ? `
+                <div class="t-block">
+                    <span class="t-dur-val">${extra.trim()}</span>
+                    <span class="t-lbl">DUR</span>
+                </div>`.replace(/\n\s*/g, '') : '';
+                
+                // 🟢 FIX 1: Append .replace(/\n\s*/g, '') here too!
                 return `
                 <div class="train-card">
-                    <div class="train-card-left">
+                    <div class="train-header">
                         <div class="train-index">${trainIndex++}</div>
-                        <div class="train-titles">
-                            <span class="t-no">${no.trim()}</span>
-                            <span class="t-name">${name.trim()}</span>
+                        <div class="train-title-text">
+                            <span>${no.trim()}</span>| ${name.trim()}
                         </div>
                     </div>
-                    
-                    <div class="train-details">
-                        <div class="train-time"><small>DEP</small><span>${dep.trim()}</span></div>
+                    <div class="train-schedule">
+                        <div class="t-block">
+                            <span class="t-time-val">${dep.trim()}</span>
+                            <span class="t-lbl">DEP</span>
+                        </div>
                         ${durHtml}
-                        <div class="train-time"><small>ARR</small><span>${arr.trim()}</span></div>
+                        <div class="t-block">
+                            <span class="t-time-val">${arr.trim()}</span>
+                            <span class="t-lbl">ARR</span>
+                        </div>
                     </div>
-                </div>`;
+                </div>`.replace(/\n\s*/g, ''); 
             });
+
+            // Force bubble expansion for breathing room
+            if (hasTrains) {
+                messageClass += ' train-bubble';
+            }
+
+            // 🟢 FIX 2: Erase any leftover newlines between train cards BEFORE standard formatting
+            formattedMessage = formattedMessage.replace(/<\/div>\s*\n+/g, '</div>');
+            formattedMessage = formattedMessage.replace(/\n+\s*<div class="train-card">/g, '<div class="train-card">');
 
             // Standard formatting...
             formattedMessage = formattedMessage.replace(/\r?\n/g, '<br>');
@@ -701,11 +771,11 @@
             if (message.trim() === "") return;
 
             // 1. Append user message
-            chatLog.innerHTML += `<div class="msg-bubble user-msg">👤 You: ${message}</div>`;
+            chatLog.innerHTML += `<div class="msg-bubble user-msg"><b>You:</b> ${message}</div>`;
             
             // 2. Append thinking animation instantly
-            thinkingIndicator.style.display = 'block';
-            thinkingIndicator.innerText = 'Analyzing request';
+            thinkingIndicator.style.display = 'flex'; // Use flex layout!
+            thinkingIndicator.innerHTML = `<div class="ai-spinner"></div><span class="thinking-text">Agent is thinking...</span>`;
             chatLog.appendChild(thinkingIndicator);
 
             // 3. Send to server

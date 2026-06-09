@@ -113,6 +113,18 @@ def build_agent():
 
         Never use standard numbered lists for trains. Only use the [TRAIN] tag.
         '''
+
+        '''
+        When presenting seat availability for a train, you MUST use this EXACT pipe-separated format for EVERY class on a new line:
+        [SEAT] Class | Status | Price
+
+        Example:
+        [SEAT] SL | AVL 12 | ₹450
+        [SEAT] 3A | WL 45 | ₹1200
+        [SEAT] 2A | RAC 10 | ₹1650
+        
+        Never use standard numbered lists or plain text for seat availability. Only use the [SEAT] tag.
+        '''
         )
     return agent
 
