@@ -173,6 +173,9 @@
             color: #f3f4f6; 
             border: 1px solid rgba(255,255,255,0.06);
             border-bottom-left-radius: 4px;
+            width: 100%;
+            max-width: 95%;
+            box-sizing: border-box;
         }
         .sys-msg { 
             background: rgba(0, 0, 0, 0.2); 
@@ -425,53 +428,108 @@
             }
         }
 
-        /* 🟢 ULTIMATE SLIM TRAIN CARDS */
         .train-card {
             display: flex;
-            align-items: center; /* Forces everything onto one horizontal axis */
-            gap: 15px;           /* Space between number/name and the times */
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(167, 139, 250, 0.2);
-            border-radius: 6px;
-            padding: 4px 10px;   /* Very thin padding */
-            margin: 4px 0;
-            font-size: 0.85em;   /* Smaller overall text */
+            align-items: center;
+            justify-content: space-between;
+
+            width: 100%;
+            box-sizing: border-box;
+
+            padding: 18px 24px;
+            margin: 12px 0;
+
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(167,139,250,0.15);
+            border-radius: 16px;
+
+            gap: 24px;
         }
 
-        /* The Name/Number Section */
-        .train-card h4 {
-            margin: 0;
-            white-space: nowrap; /* Keeps number and name on one line */
-            color: #ffffff;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.9em;
-            flex-shrink: 0;      /* Don't let the name squish */
+        .train-card-left {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+
+            flex: 1;
+            min-width: 250px;
         }
 
-        /* The Container for times */
+        .train-index {
+            width: 34px;
+            height: 34px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+            flex-shrink: 0;
+
+            background: rgba(167,139,250,0.15);
+            border: 1px solid rgba(167,139,250,0.3);
+
+            color: #c084fc;
+            font-weight: 700;
+        }
+
+        .train-titles {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            min-width: 0;
+        }
+
+        .t-no {
+            display: block;
+            color: #a78bfa;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .t-name {
+            display: block;
+
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .train-details {
             display: flex;
-            flex: 1;             /* Takes up remaining space */
-            justify-content: space-between;
             align-items: center;
+            gap: 36px;
+
+            background: rgba(0,0,0,0.25);
+
+            padding: 14px 28px;
+            border-radius: 12px;
+
+            flex-shrink: 0;
         }
 
-        /* Individual time labels */
         .train-time {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 4px;
-        }
-
-        .train-time span {
-            font-weight: 700;
-            color: #c084fc;
         }
 
         .train-time small {
-            color: var(--text-muted);
-            font-size: 0.7em;
-            text-transform: uppercase;
+            color: #9ca3af;
+            font-size: 0.7rem;
+            margin-bottom: 4px;
+        }
+
+        .train-time span {
+            color: #c084fc;
+            font-size: 1.2rem;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -597,14 +655,23 @@
             if (data.type === 'error') messageClass = 'sys-msg';
 
             let formattedMessage = data.message;
+            
+            // 🟢 NEW: Initialize a counter that resets to 1 for every new AI message
+            let trainIndex = 1;
 
             const trainRegex = /\[TRAIN\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n]+)(?:\|\s*([^\n]+))?/g;
-            // Use this updated regex logic:
             formattedMessage = formattedMessage.replace(trainRegex, function(match, no, name, dep, arr, extra) {
-                let durHtml = extra ? `<div class="train-time"><small>D:</small><span>${extra.trim()}</span></div>` : '';
+                let durHtml = extra ? `<div class="train-time"><small>DUR</small><span>${extra.trim()}</span></div>` : '';
                 return `
                 <div class="train-card">
-                    <h4>🚂 ${no.trim()} | ${name.trim()}</h4>
+                    <div class="train-card-left">
+                        <div class="train-index">${trainIndex++}</div>
+                        <div class="train-titles">
+                            <span class="t-no">${no.trim()}</span>
+                            <span class="t-name">${name.trim()}</span>
+                        </div>
+                    </div>
+                    
                     <div class="train-details">
                         <div class="train-time"><small>DEP</small><span>${dep.trim()}</span></div>
                         ${durHtml}
@@ -613,6 +680,7 @@
                 </div>`;
             });
 
+            // Standard formatting...
             formattedMessage = formattedMessage.replace(/\r?\n/g, '<br>');
             formattedMessage = formattedMessage.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
