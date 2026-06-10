@@ -498,20 +498,29 @@
         }
 
         /* 🟢 PREMIUM SEAT AVAILABILITY BADGES */
+        .result-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 18px 0; /* 🟢 This creates the perfect space above and below the cards! */
+            width: 100%;
+        }
+
+        .train-container { flex-direction: column; } /* Stacks trains vertically */
+        .seat-container { flex-direction: row; }
+
         .seat-badge {
-            display: inline-flex;
+            display: flex; /* Changed from inline-flex */
             flex-direction: column;
             background: rgba(23, 25, 38, 0.9);
             border: 1px solid rgba(167, 139, 250, 0.2);
             border-radius: 10px;
-            padding: 10px;
-            margin: 4px 8px 4px 0;
-            min-width: 110px;
-            width: 110px; /* 🟢 Force fixed width to prevent squishing */
+            padding: 12px;
+            /* Margins removed, handled by container gap */
+            min-width: 130px;
+            width: 130px;
             flex: 0 0 auto;
-            vertical-align: top;
             text-align: center;
-            margin-top: 10px;
         }
 
         .seat-badge:hover {
@@ -570,9 +579,9 @@
             border: 1px solid rgba(167, 139, 250, 0.3);
             border-radius: 12px;
             padding: 12px;
-            margin: 8px 0;
-            width: 100%; /* 🟢 Occupy full bubble width */
-            max-width: 100% !important; /* 🟢 Remove 500px limit */
+            /* Margins removed, handled by container gap */
+            width: 100%;
+            max-width: 100% !important;
             box-sizing: border-box;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
@@ -786,69 +795,81 @@
             let hasSeats = false; 
             let trainIndex = 1;
             
-            const trainRegex = /\[TRAIN\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n]+)(?:\|\s*([^\n]+))?/g;
-            formattedMessage = formattedMessage.replace(trainRegex, function(match, no, name, dep, arr, extra) {
+            // 🟢 1. GROUP AND FORMAT TRAINS
+            const trainBlockRegex = /(?:\[TRAIN\].*(\r?\n)?)+/g;
+            formattedMessage = formattedMessage.replace(trainBlockRegex, function(blockMatch) {
                 hasTrains = true;
-                let durHtml = extra ? `
-                <div class="t-block">
-                    <span class="t-dur-val">${extra.trim()}</span>
-                    <span class="t-lbl">DUR</span>
-                </div>`.replace(/\n\s*/g, '') : '';
+                const trainLineRegex = /\[TRAIN\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n]+)(?:\|\s*([^\n]+))?/g;
                 
-                return `
-                <div class="train-card">
-                    <div class="train-header">
-                        <div class="train-index">${trainIndex++}</div>
-                        <div class="train-title-text">
-                            <span>${no.trim()}</span>| ${name.trim()}
+                let trainsHtml = blockMatch.replace(trainLineRegex, function(match, no, name, dep, arr, extra) {
+                    let durHtml = extra ? `
+                    <div class="t-block">
+                        <span class="t-dur-val">${extra.trim()}</span>
+                        <span class="t-lbl">DUR</span>
+                    </div>`.replace(/\n\s*/g, '') : '';
+                    
+                    return `
+                    <div class="train-card">
+                        <div class="train-header">
+                            <div class="train-index">${trainIndex++}</div>
+                            <div class="train-title-text">
+                                <span>${no.trim()}</span>| ${name.trim()}
+                            </div>
                         </div>
-                    </div>
-                    <div class="train-schedule">
-                        <div class="t-block">
-                            <span class="t-time-val">${dep.trim()}</span>
-                            <span class="t-lbl">DEP</span>
+                        <div class="train-schedule">
+                            <div class="t-block">
+                                <span class="t-time-val">${dep.trim()}</span>
+                                <span class="t-lbl">DEP</span>
+                            </div>
+                            ${durHtml}
+                            <div class="t-block">
+                                <span class="t-time-val">${arr.trim()}</span>
+                                <span class="t-lbl">ARR</span>
+                            </div>
                         </div>
-                        ${durHtml}
-                        <div class="t-block">
-                            <span class="t-time-val">${arr.trim()}</span>
-                            <span class="t-lbl">ARR</span>
-                        </div>
-                    </div>
-                </div>`.replace(/\n\s*/g, ''); 
+                    </div>`.replace(/\n\s*/g, ''); 
+                });
+                // Wrap all trains in the container
+                return `<div class="result-container train-container">${trainsHtml}</div>`;
             });
 
-            // 🟢 SEAT AVAILABILITY INTERCEPTOR
-            const seatRegex = /\[SEAT\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n<]+)/g;
-            formattedMessage = formattedMessage.replace(seatRegex, function(match, cls, status, price) {
+            // 🟢 2. GROUP AND FORMAT SEATS
+            const seatBlockRegex = /(?:\[SEAT\].*(\r?\n)?)+/g;
+            formattedMessage = formattedMessage.replace(seatBlockRegex, function(blockMatch) {
                 hasSeats = true; 
-                let s = status.trim().toUpperCase();
-                let colorClass = 's-avl'; 
-                if (s.includes('WL') || s.includes('WAITLIST') || s.includes('NOT')) colorClass = 's-wl'; 
-                if (s.includes('RAC')) colorClass = 's-rac'; 
+                const seatLineRegex = /\[SEAT\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n<]+)/g;
                 
-                // .replace(/[\r\n]+/g, '') ensures no hidden line breaks exist
-                return `
-                <div class="seat-badge">
-                    <div class="seat-top">
-                        <span class="s-class">${cls.trim()}</span>
-                        <span class="s-price">${price.trim()}</span>
-                    </div>
-                    <div class="s-status ${colorClass}">${status.trim()}</div>
-                </div>`.replace(/[\r\n]+/g, '');
+                let seatsHtml = blockMatch.replace(seatLineRegex, function(match, cls, status, price) {
+                    let s = status.trim().toUpperCase();
+                    let colorClass = 's-avl'; 
+                    if (s.includes('WL') || s.includes('WAITLIST') || s.includes('NOT')) colorClass = 's-wl'; 
+                    if (s.includes('RAC')) colorClass = 's-rac'; 
+                    
+                    return `
+                    <div class="seat-badge">
+                        <div class="seat-top">
+                            <span class="s-class">${cls.trim()}</span>
+                            <span class="s-price">${price.trim()}</span>
+                        </div>
+                        <div class="s-status ${colorClass}">${status.trim()}</div>
+                    </div>`.replace(/\n\s*/g, '');
+                });
+                // Wrap all seats in the container
+                return `<div class="result-container seat-container">${seatsHtml}</div>`;
             });
 
             if (hasTrains || hasSeats) {
                 messageClass += ' train-bubble';
             }
 
-            // Standard formatting...
+            // 🟢 3. PREVENT DOUBLE-SPACING AROUND CONTAINERS
+            // Strips the invisible newlines directly touching the container so CSS margin handles it cleanly
+            formattedMessage = formattedMessage.replace(/\n*<div class="result-container/g, '<div class="result-container');
+            formattedMessage = formattedMessage.replace(/\n*/g, '');
+
+            // Standard text formatting for the rest of the message
             formattedMessage = formattedMessage.replace(/\r?\n/g, '<br>');
             formattedMessage = formattedMessage.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-
-            // 🧹 CLEANUP VACUUM: Destroy jagged <br> tags injected between UI cards!
-            formattedMessage = formattedMessage.replace(/(<br>\s*)+<div class="seat-badge">/g, '<div class="seat-badge">');
-            formattedMessage = formattedMessage.replace(/(<br>\s*)+<div class="train-card">/g, '<div class="train-card">');
-            formattedMessage = formattedMessage.replace(/<\/div>\s*(<br>\s*)+/g, '</div>');
 
             chatLog.innerHTML += `<div class="msg-bubble ${messageClass}">${formattedMessage}</div>`;
             chatLog.scrollTop = chatLog.scrollHeight; 
