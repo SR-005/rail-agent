@@ -77,14 +77,11 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
                     train_id = await card.get_attribute("id")
                     train_number = train_id.replace("train-", "")
                     
-                    # Target the name and times directly
                     name_el = await card.query_selector(".body-sm.text-neutral-800")
                     train_name = (await name_el.inner_text()).strip() if name_el else "Unknown Train"
                     
                     times = await card.query_selector_all('div.body-sm.text-left.font-medium')
                     dur = await card.query_selector('p.body-xs.inline-block.text-secondary')
-                    
-                    # 🟢 SCALPEL PRECISION: Target the exact class from your screenshot!
                     stations = await card.query_selector_all('.text-sm.text-neutral-500.truncate')
                     
                     if len(times) >= 2 and dur:
@@ -92,17 +89,17 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
                         arr = (await times[1].inner_text()).split()[0]
                         d = await dur.inner_text()
                         
-                        # 🟢 Grab the exact short codes straight from the HTML!
-                        specific_from = fromcode
-                        specific_to = tocode
-                        if len(stations) >= 2:
-                            specific_from = (await stations[0].inner_text()).strip()
-                            specific_to = (await stations[1].inner_text()).strip()
-                        
-                        # Send the precise 7 fields to the AI's brain!
+
+                        specific_from = "None"
+                        specific_to = "None"
+                        specific_from=(await times[0].inner_text()).split()[1]
+                        specific_to=(await times[1].inner_text()).split()[1]
+                            
+                        print(f"{specific_from} -> {specific_to}")
+                        # 🟢 Send the precise 8 fields to the AI's brain!
                         results.append(f"[TRAIN] {train_number} | {train_name} | {dep} | {arr} | {d} | {specific_from} | {specific_to}")
                 except Exception as e:
-                    continue # Skip cards that don't match our structure
+                    continue
 
             await browser.close()
 
@@ -326,29 +323,37 @@ async def login():
     
     #opening the chrome window for execution
     try:
-        # DETACHED_PROCESS (0x00000008) cuts the parent-child bond on Windows
-        subprocess.Popen(
-            [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--start-maximized",              #"--window-size=390,844"
-                #"--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
-            ],      
-            creationflags=0x00000008 if os.name == 'nt' else 0,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        await asyncio.sleep(2)      # Give Chrome a quick moment to spin up its socket server
+        browser = await playwright.chromium.connect_over_cdp("http://localhost:9222")
+        print("[System] Successfully attached to existing Chrome window!")
+    except Exception:
+        # If we reach here, Chrome is NOT open, so we spawn a new one.
+        print("[System] Spawning NEW independent Chrome process...")
+        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+        user_data_dir = r"C:\chrome_dev_profile"
+        try:
+            # DETACHED_PROCESS (0x00000008) cuts the parent-child bond on Windows
+            subprocess.Popen(
+                [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--start-maximized",              #"--window-size=390,844"
+                    #"--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+                ],      
+                creationflags=0x00000008 if os.name == 'nt' else 0,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            await asyncio.sleep(2)      # Give Chrome a quick moment to spin up its socket server
 
-    except Exception as e:
-        print(f"❌ Failed to launch Chrome automatically: {e}")
-        return False
+            try:
+                browser = await playwright.chromium.connect_over_cdp("http://localhost:9222")
+                await asyncio.sleep(4)
+            except Exception as e:
+                print(f"❌ Connection Failed! {e}")
+                return False
+
+        except Exception as e:
+            print(f"❌ Failed to launch Chrome automatically: {e}")
+            return False
 
     print("[System] Connecting Playwright via CDP link...")
-    try:
-        browser = await playwright.chromium.connect_over_cdp("http://localhost:9222")
-        await asyncio.sleep(4)
-    except Exception as e:
-        print(f"❌ Connection Failed! {e}")
-        return False
-    
     context=browser.contexts[0]
     page=context.pages[0] if context.pages else await context.new_page()
 
@@ -509,6 +514,16 @@ async def gettobooking(traincard, coach: str, date: str):
         await booknowbutton.wait_for(state="visible",timeout=5000)
         await booknowbutton.click()
         await asyncio.sleep(4)
+
+        # 🟢 NEW: Handle the IRCTC Confirmation Popup!
+        try:
+            yes_button = page.locator("button", has_text="Yes").first
+            await yes_button.wait_for(state="visible", timeout=3000)
+            print("[System] IRCTC Station Mismatch Popup detected! Clicking 'Yes'...")
+            await yes_button.click()
+        except Exception:
+            print("[System] No confirmation popup appeared, proceeding normally...")
+
         return True
 
     except Exception as e:

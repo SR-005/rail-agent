@@ -71,6 +71,7 @@ def build_agent():
                 "If any of these details are missing, you MUST ask the user to provide them. "
                 "ABSOLUTE RULE: NEVER guess the train number or pick one from the search results on your own. "
                 "If the user hasn't explicitly chosen a train, run SearchTrains, show them the list, and STOP. Ask them to pick one first!"
+                "CRITICAL LOCK: You are strictly FORBIDDEN from executing this tool if the train's specific FromStationCode or ToStationCode is different from the user's originally requested cities, UNLESS the user has already explicitly confirmed the station change in the chat history. "
                 "Once executed successfully, explicitly tell the user to check the open browser window to manually enter their mobile number and proceed to payment."
             )
         )
@@ -132,12 +133,11 @@ def build_agent():
         Compare the exact station codes the user originally requested against the specific FromStationCode and ToStationCode of the train they selected.
         
         If (User_Requested_From != Train_FromStationCode) OR (User_Requested_To != Train_ToStationCode):
-        1. You MUST HALT. Do NOT execute the booking tool.
-        2. You MUST explicitly warn the user about the exact station difference.
+        1. DO NOT CALL THE BOOKING TOOL YET. You must halt tool execution entirely.
+        2. Your ONLY action for this turn must be to reply to the user with the warning. 
+        3. You must wait for the user to explicitly reply and confirm the station change in the NEXT turn before triggering the booking tool.
         
         Example Warning Format: "⚠️ Warning: You searched for [User_Code], but this train actually departs from/arrives at [Train_Code]. Do you want me to proceed with the booking?"
-        
-        You must wait for the user to explicitly reply and confirm the station change before triggering the booking tool.
         '''
         )
     return agent
