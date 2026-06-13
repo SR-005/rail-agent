@@ -13,7 +13,9 @@ from playwright.async_api import async_playwright
 
 load_dotenv()
 
-
+# 🟢 Add this near the top
+LAST_SEARCH_FROM = None
+LAST_SEARCH_TO = None
 
 # Ensure Windows uses the Proactor event loop so subprocess APIs work
 if sys.platform.startswith("win"):
@@ -42,6 +44,7 @@ STATIONCODES={
 active_trackers = {}
 
 async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
+    global LAST_SEARCH_FROM, LAST_SEARCH_TO
     print(f"Searching train searchtrains for: {fromstation} to {tostation} on {date}")
 
     try:
@@ -49,6 +52,9 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
         tocode = STATIONCODES.get(tostation.lower())
         if not fromcode or not tocode:
             return "Could not find Station Codes. Please use major station names."
+        
+        LAST_SEARCH_FROM = fromcode
+        LAST_SEARCH_TO = tocode
 
         url = f"https://www.confirmtkt.com/rbooking/trains/from/{fromcode}/to/{tocode}/{date}"
         
@@ -624,7 +630,21 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
         print("Error in passengerfill function ", e)
         return False
 
-async def normalbooking(name: str, age: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str):
+async def normalbooking(name: str, age: str, gender: str, preference: str, trainnumber: str, fromstation: str, tostation: str, date: str, coach: str, confirmed_mismatch: bool = False):
+    global LAST_SEARCH_FROM, LAST_SEARCH_TO
+    print(f"From Normal Booking: SEARCH{LAST_SEARCH_FROM}->{LAST_SEARCH_TO}")
+    print(f"From Normal Booking: SEARCH{fromstation}->{tostation}")
+    if LAST_SEARCH_FROM and LAST_SEARCH_TO:
+        if fromstation != LAST_SEARCH_FROM or tostation != LAST_SEARCH_TO:
+            if not confirmed_mismatch:
+                print("\n[System] Tool execution BLOCKED! Forcing AI to ask for permission.")
+                return (
+                    f"🛑 ACTION BLOCKED: Station mismatch! The user originally searched for {LAST_SEARCH_FROM}, "
+                    f"but this train departs from {fromstation.upper()}. "
+                    f"You MUST ask the user: 'Warning: This train departs from {fromstation.upper()}. Proceed?' "
+                    f"Do NOT run this tool again until they say YES."
+                )
+
     loginstatus=await login()
     if not loginstatus:
         print("Login Unsuccessfull!! PLEASE TRY AGAIN")
