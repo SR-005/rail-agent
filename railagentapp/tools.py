@@ -84,12 +84,23 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
                     times = await card.query_selector_all('div.body-sm.text-left.font-medium')
                     dur = await card.query_selector('p.body-xs.inline-block.text-secondary')
                     
+                    # 🟢 SCALPEL PRECISION: Target the exact class from your screenshot!
+                    stations = await card.query_selector_all('.text-sm.text-neutral-500.truncate')
+                    
                     if len(times) >= 2 and dur:
                         dep = (await times[0].inner_text()).split()[0]
                         arr = (await times[1].inner_text()).split()[0]
                         d = await dur.inner_text()
                         
-                        results.append(f"[TRAIN] {train_number} | {train_name} | {dep} | {arr} | {d}")
+                        # 🟢 Grab the exact short codes straight from the HTML!
+                        specific_from = fromcode
+                        specific_to = tocode
+                        if len(stations) >= 2:
+                            specific_from = (await stations[0].inner_text()).strip()
+                            specific_to = (await stations[1].inner_text()).strip()
+                        
+                        # Send the precise 7 fields to the AI's brain!
+                        results.append(f"[TRAIN] {train_number} | {train_name} | {dep} | {arr} | {d} | {specific_from} | {specific_to}")
                 except Exception as e:
                     continue # Skip cards that don't match our structure
 

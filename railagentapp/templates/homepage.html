@@ -664,11 +664,20 @@
         }
 
         .t-lbl {
-            font-size: 0.65em; /* Clearer labels */
+            font-size: 0.65em;
             font-weight: 700;
             color: #9ca3af;
             letter-spacing: 0.5px;
             margin-top: 2px;
+        }
+
+        .t-stn {
+            font-size: 0.7em;
+            font-weight: 800;
+            color: #a78bfa; /* Glowing purple */
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+            text-transform: uppercase;
         }
     </style>
 </head>
@@ -796,15 +805,20 @@
             let trainIndex = 1;
             
             // 🟢 1. GROUP AND FORMAT TRAINS
+            // 🟢 1. GROUP AND FORMAT TRAINS (Now with Station Codes!)
             const trainBlockRegex = /(?:\[TRAIN\].*(\r?\n)?)+/g;
             formattedMessage = formattedMessage.replace(trainBlockRegex, function(blockMatch) {
                 hasTrains = true;
-                const trainLineRegex = /\[TRAIN\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|\n]+)(?:\|\s*([^\n]+))?/g;
                 
-                let trainsHtml = blockMatch.replace(trainLineRegex, function(match, no, name, dep, arr, extra) {
-                    let durHtml = extra ? `
+                // 🟢 UPDATED: Regex now captures 7 fields instead of 5
+                const trainLineRegex = /\[TRAIN\]\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^\n<]+)/g;
+                
+                let trainsHtml = blockMatch.replace(trainLineRegex, function(match, no, name, dep, arr, dur, fromStn, toStn) {
+                    console.log(fromStn)
+                    console.log(toStn)
+                    let durHtml = dur ? `
                     <div class="t-block">
-                        <span class="t-dur-val">${extra.trim()}</span>
+                        <span class="t-dur-val">${dur.trim()}</span>
                         <span class="t-lbl">DUR</span>
                     </div>`.replace(/\n\s*/g, '') : '';
                     
@@ -819,17 +833,17 @@
                         <div class="train-schedule">
                             <div class="t-block">
                                 <span class="t-time-val">${dep.trim()}</span>
-                                <span class="t-lbl">DEP</span>
+                                <span class="t-stn">${fromStn.trim()}</span> 
                             </div>
                             ${durHtml}
                             <div class="t-block">
                                 <span class="t-time-val">${arr.trim()}</span>
-                                <span class="t-lbl">ARR</span>
+                                <span class="t-stn">${toStn.trim()}</span> 
                             </div>
                         </div>
                     </div>`.replace(/\n\s*/g, ''); 
                 });
-                // Wrap all trains in the container
+                
                 return `<div class="result-container train-container">${trainsHtml}</div>`;
             });
 
