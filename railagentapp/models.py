@@ -6,7 +6,7 @@ class PassengerProfile(models.Model):
     
     full_name=models.CharField(max_length=100, help_text="Exactly as it appears on ID")
     age=models.IntegerField(null=True, blank=True)
-    email = models.EmailField(unique=True, blank=False, null=False)
+    email = models.EmailField(blank=False, null=False)
     
     GENDER_CHOICES = [
         ('Male', 'Male'),
