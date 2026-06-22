@@ -8,8 +8,8 @@ class TrainSearchInput(BaseModel):
 
 class CheckSeatInput(BaseModel):
     trainnumber: str=Field(description="The 5-digit train number")
-    fromstation: str=Field(description="Re-use the departure station from the search.")
-    tostation: str=Field(description="Re-use the destination station from the search.")
+    fromstation: str = Field(description="CRITICAL: You MUST pass the exact 3-letter station code shown on the specific train card in the search results (e.g., 'ERN'). DO NOT pass the full city name.")
+    tostation: str = Field(description="CRITICAL: You MUST pass the exact 3-letter station code shown on the specific train card in the search results (e.g., 'AWY'). DO NOT pass the full city name.")
     date: str=Field(description="Re-use the travel date from the search (DD-MM-YYYY).")
 
 class TrackStatusInput(BaseModel):

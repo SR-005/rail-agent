@@ -33,7 +33,8 @@ loginsession={
 
 STATIONCODES={
     "aluva": "AWY",
-    "ernakulam": "ERS",
+    "ernakulam south": "ERS",
+    "ernakulam north": "ERN",
     "bangalore": "SBC",
     "chennai": "MAS",
     "delhi": "NDLS",
@@ -64,6 +65,7 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
             page = await context.new_page()
             
             await page.goto(url)
+            print("URL: ",url)
             
             # 🟢 FIX: Wait for the specific train row container to be present in the DOM
             try:
@@ -123,8 +125,8 @@ async def checkseats(trainnumber: str, fromstation: str, tostation: str, date: s
 
     async with async_playwright() as p:
 
-        fromcode=STATIONCODES.get(fromstation.lower())
-        tocode=STATIONCODES.get(tostation.lower())
+        fromcode=fromstation
+        tocode=tostation
         date=date
         if not fromcode or not tocode:
             return "Could not find Station Codes for these Stations. Please Retry with Major Stations"
@@ -369,11 +371,38 @@ async def login():
     loginsession["browser"]=browser
     loginsession["page"]=page
 
+    try:
+        cdp = await page.context.new_cdp_session(page)
+        window_info = await cdp.send("Browser.getWindowForTarget")
+        await cdp.send("Browser.setWindowBounds", {
+            "windowId": window_info["windowId"],
+            "bounds": {"windowState": "minimized"}
+        })
+        print("[System] Browser minimized. Running silently in the background...")
+    except Exception as e:
+        pass
+
     await page.goto("https://www.irctc.co.in/nget/train-search", wait_until="domcontentloaded")
     await asyncio.sleep(5)
 
     windowwidth=await page.evaluate("window.innerWidth")
     ismobile=windowwidth<768
+
+    # 🟢 NEW: Auto-click the 'ENGLISH' language popup!
+    try:
+        print("[System] Checking for Language popup...")
+        # Using 'text=' is aggressive and will find the word regardless of the HTML tag
+        english_btn = page.locator("text=ENGLISH").first
+        
+        # Wait up to 3 seconds for it to appear
+        await english_btn.wait_for(state="visible", timeout=3000)
+        await english_btn.click()
+        print("[System] Successfully clicked ENGLISH!")
+        
+        await asyncio.sleep(1) # Brief pause to let the popup vanish
+    except Exception:
+        # If the popup doesn't appear this time, quietly move on!
+        pass
 
     if ismobile:                   #for mobile cases
         try:
@@ -655,8 +684,8 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
     if not page:
         return "Error: No active browser session found."
     
-    fromcode=STATIONCODES.get(fromstation.lower())
-    tocode=STATIONCODES.get(tostation.lower())
+    fromcode = STATIONCODES.get(fromstation.lower(), fromstation).upper()
+    tocode = STATIONCODES.get(tostation.lower(), tostation).upper()
     date=date.replace("-", "/")
 
     agentstatus=await searchfill(fromcode,tocode,date,coach)
@@ -672,6 +701,24 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
     if passengerfillstatus!=True:
         return "An Error Occured while filling the passenger details."
     
+    try:
+        page = loginsession["page"]
+        cdp = await page.context.new_cdp_session(page)
+        window_info = await cdp.send("Browser.getWindowForTarget")
+        
+        # We set it to 'normal' first to break the minimize state, then force 'maximized'
+        await cdp.send("Browser.setWindowBounds", {
+            "windowId": window_info["windowId"],
+            "bounds": {"windowState": "normal"}
+        })
+        await cdp.send("Browser.setWindowBounds", {
+            "windowId": window_info["windowId"],
+            "bounds": {"windowState": "maximized"}
+        })
+        print("\n[System] Booking ready! Popping browser to the foreground for Payment...")
+    except Exception as e:
+        pass
+
     if loginsession["browser"]:
         await loginsession["browser"].close()
     if loginsession["playwright"]:
