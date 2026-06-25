@@ -329,7 +329,7 @@ async def login():
     chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
     user_data_dir = r"C:\chrome_dev_profile"
     
-    #opening the chrome window for execution
+    #opening the chrome window
     try:
         browser = await playwright.chromium.connect_over_cdp("http://localhost:9222")
         print("[System] Successfully attached to existing Chrome window!")
@@ -388,20 +388,17 @@ async def login():
     windowwidth=await page.evaluate("window.innerWidth")
     ismobile=windowwidth<768
 
-    # 🟢 NEW: Auto-click the 'ENGLISH' language popup!
+    #Language Pop Up Handler
     try:
         print("[System] Checking for Language popup...")
-        # Using 'text=' is aggressive and will find the word regardless of the HTML tag
         english_btn = page.locator("text=ENGLISH").first
         
-        # Wait up to 3 seconds for it to appear
-        await english_btn.wait_for(state="visible", timeout=3000)
+        await english_btn.wait_for(state="visible", timeout=2000)
         await english_btn.click()
         print("[System] Successfully clicked ENGLISH!")
         
-        await asyncio.sleep(1) # Brief pause to let the popup vanish
+        await asyncio.sleep(1)
     except Exception:
-        # If the popup doesn't appear this time, quietly move on!
         pass
 
     if ismobile:                   #for mobile cases
@@ -409,7 +406,7 @@ async def login():
             print("[System] Mobile viewport detected. Opening sidebar menu...")
             hamburgermenu=page.locator(".moblogo .fa-align-justify").first
             await hamburgermenu.click(force=True)
-            await asyncio.sleep(4)
+            await asyncio.sleep(2)
 
             loginbutton=page.locator("button.search_btn", has_text="LOGIN / REGISTER").first
             await loginbutton.wait_for(state="attached", timeout=5000)
@@ -454,20 +451,17 @@ async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
     print(f"[System] Filling search: {fromcode} to {tocode} for {date}")
 
     try:
-        # 🟢 1. FROM STATION - Type slowly and click the exact dropdown item
         frominput = page.locator("p-autocomplete#origin input")
         await frominput.click()
         await page.keyboard.press("Control+A")
         await page.keyboard.press("Backspace")
         await frominput.type(fromcode, delay=150)
         
-        # Wait for the dropdown list to appear, then physically click the exact station
         from_dropdown = page.locator(f"li[role='option']:has-text('{fromcode}')").first
         await from_dropdown.wait_for(state="visible", timeout=10000)
         await from_dropdown.click()
         await asyncio.sleep(0.5)
 
-        # 🟢 2. TO STATION - Type slowly and click the exact dropdown item
         toinput = page.locator("p-autocomplete#destination input")
         await toinput.click()
         await page.keyboard.press("Control+A")
@@ -479,27 +473,24 @@ async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
         await to_dropdown.click()
         await asyncio.sleep(0.5)
 
-        # 🟢 3. DATE SELECTION
         dateinput = page.locator("p-calendar#jDate input")
         await dateinput.click()
         await page.keyboard.press("Control+A")
         await page.keyboard.press("Backspace")
         await dateinput.type(date, delay=100)
         await asyncio.sleep(0.5)
-        await page.keyboard.press("Escape") # CRITICAL: Closes the calendar popup so it doesn't block the search button!
+        await page.keyboard.press("Escape")
         await asyncio.sleep(0.5)
 
-        # 🟢 4. COACH SELECTION
         if coach != "All Classes":
             await page.click('#journeyClass')
             await asyncio.sleep(0.5)
             await page.click(f"p-dropdownitem >> text={coach}")
             await asyncio.sleep(0.5)
         
-        # 🟢 5. SEARCH BUTTON
         searchbutton = page.locator("button.search_btn", has_text="Search Trains")
         await searchbutton.scroll_into_view_if_needed()
-        await searchbutton.click() # Removed force=True so it clicks normally
+        await searchbutton.click()
 
         await asyncio.sleep(2)
         print("SUCCESS: Navigated to Results Page.")
@@ -550,7 +541,7 @@ async def gettobooking(traincard, coach: str, date: str):
         await booknowbutton.click()
         await asyncio.sleep(4)
 
-        # 🟢 NEW: Handle the IRCTC Confirmation Popup!
+        #For Station Change Confirmations
         try:
             yes_button = page.locator("button", has_text="Yes").first
             await yes_button.wait_for(state="visible", timeout=3000)
@@ -586,7 +577,7 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
         await page.keyboard.press("Tab")
         await asyncio.sleep(0.5)
 
-        # Age Input (Fixed: Click added to shift input focus)
+        # Age Input
         ageinput = page.locator('input[placeholder="Age"]')
         await ageinput.click() 
         await page.keyboard.press("Control+A")
@@ -611,8 +602,6 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
             await berthdropdown.click()
             await asyncio.sleep(0.5)
             try:
-                # For Berth, we MUST use label= because your DB sends words ("Lower") 
-                # but IRCTC's hidden value is an abbreviation ("LB")
                 clean_preference = preference.strip().title()
                 await berthdropdown.select_option(label=clean_preference)
             except Exception as e:
@@ -620,7 +609,7 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
             
         for _ in range(4): 
             await page.keyboard.press("PageDown")
-            await asyncio.sleep(0.4) # Brief pause to let the browser render the scroll
+            await asyncio.sleep(0.4)
             
         print("[System] Ready for Payment.")
         await asyncio.sleep(2)
@@ -642,7 +631,6 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
         print("[System] Ready for Payment. The Continue button has been floated for you!")
         await asyncio.sleep(2)
 
-        # The ':visible' pseudo-class prevents Playwright from locking onto hidden background elements
         continue_btn = page.locator("button:visible", has_text="Continue")
         
         if await continue_btn.count() > 0:
@@ -706,7 +694,6 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
         cdp = await page.context.new_cdp_session(page)
         window_info = await cdp.send("Browser.getWindowForTarget")
         
-        # We set it to 'normal' first to break the minimize state, then force 'maximized'
         await cdp.send("Browser.setWindowBounds", {
             "windowId": window_info["windowId"],
             "bounds": {"windowState": "normal"}
@@ -725,7 +712,7 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
         await loginsession["playwright"].stop()
 
     print("\n" + "═"*50)
-    print("🎉 PASSENGER DETAILS FILLED SUCCESSFULLY! 🎉")
+    print("PASSENGER DETAILS FILLED SUCCESSFULLY!")
     print("The bot has paused. Please go to the open browser and:")
     print("  1. Enter the Passenger Mobile Number.")
     print("  2. Select your Payment Method.")
