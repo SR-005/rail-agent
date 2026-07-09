@@ -32,14 +32,69 @@ loginsession={
 }
 
 STATIONCODES={
-    "aluva": "AWY",
-    "ernakulam south": "ERS",
-    "ernakulam north": "ERN",
     "bangalore": "SBC",
     "chennai": "MAS",
     "delhi": "NDLS",
+    "mumbai": "BCT",
     "trivandrum": "TVC",
-    "kochi": "ERS" 
+    "thiruvananthapuram": "TVC",
+    "trivandrum pettah": "TVP",
+    "kochuveli": "KCVL",
+    "varkala": "VAK",
+    "kollam": "QLN",
+    "quilon": "QLN",
+    "paravur": "PVU",
+    "karunagappally": "KPY",
+    "kayamkulam": "KYJ",
+    "haripad": "HAD",
+    "ambalappuzha": "AMPA",
+    "alappuzha": "ALLP",
+    "alleppey": "ALLP",
+    "cherthala": "SRTL",
+    "mavelikara": "MVLK",
+    "chengannur": "CNGR",
+    "tiruvalla": "TRVL",
+    "changanassery": "CGY",
+    "kottayam": "KTYM",
+    "ettumanoor": "ETM",
+    "piravom road": "PVRD",
+    "tripunithura": "TRTR",
+    "thrippunithura": "TRTR",
+    "kochi": "ERS",
+    "ernakulam south": "ERS",
+    "ernakulam junction": "ERS",
+    "ernakulam": "ERS",  # Defaulting 'ernakulam' to South (Junction)
+    "ernakulam north": "ERN",
+    "ernakulam town": "ERN",
+    "aluva": "AWY",
+    "alwaye": "AWY",
+    "angamaly": "AFK",
+    "chalakudy": "CKI",
+    "irinjalakuda": "IJK",
+    "thrissur": "TCR",
+    "trichur": "TCR",
+    "guruvayur": "GUV",
+    "shoranur": "SRR",
+    "ottappalam": "OTP",
+    "palakkad": "PGT",
+    "palghat": "PGT",
+    "pattambi": "PTB",
+    "kuttippuram": "KTU",
+    "tirur": "TIR",
+    "parappanangadi": "PGI",
+    "ferok": "FK",
+    "kozhikode": "CLT",
+    "calicut": "CLT",
+    "koyilandy": "QLD",
+    "vadakara": "BDJ",
+    "thalassery": "TLY",
+    "tellicherry": "TLY",
+    "kannur": "CAN",
+    "cannanore": "CAN",
+    "payyanur": "PAY",
+    "kanhangad": "KZE",
+    "kasaragod": "KGQ",
+    "manjeshwar": "MJS"
 }
 
 active_trackers = {}
@@ -67,14 +122,12 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
             await page.goto(url)
             print("URL: ",url)
             
-            # 🟢 FIX: Wait for the specific train row container to be present in the DOM
             try:
                 await page.wait_for_selector('div[id^="train-"]', timeout=15000)
             except Exception:
                 await browser.close()
                 return "Failed to load train list. The website might be blocking us or slow to respond."
 
-            # Optional: Short pause to let dynamic content settle
             await asyncio.sleep(2)
             
             train_cards = await page.query_selector_all('div[id^="train-"]')
@@ -104,7 +157,6 @@ async def searchtrains(fromstation: str, tostation: str, date: str) -> str:
                         specific_to=(await times[1].inner_text()).split()[1]
                             
                         print(f"{specific_from} -> {specific_to}")
-                        # 🟢 Send the precise 8 fields to the AI's brain!
                         results.append(f"[TRAIN] {train_number} | {train_name} | {dep} | {arr} | {d} | {specific_from} | {specific_to}")
                 except Exception as e:
                     continue
@@ -234,7 +286,7 @@ async def stoptracking(trainnumber: str) -> str:
     if trainnumber in active_trackers:
         active_trackers[trainnumber].cancel() # Kills the while loop!
         del active_trackers[trainnumber]
-        print(f"\n[System] 🛑 Tracker for Train {trainnumber} has been manually stopped.")
+        print(f"\n[System] Tracker for Train {trainnumber} has been manually stopped.")
         return f"Successfully stopped the background tracker for Train {trainnumber}."
     else:
         return f"I am not currently tracking Train {trainnumber}."
@@ -292,22 +344,20 @@ def send_email_alert(trainnumber, coach, currentstatus, user_email):
 
         url = "https://api.brevo.com/v3/smtp/email"
         
-        # Build the exact JSON payload Brevo demands
         payload = {
             "sender": {"email": sender_email, "name": "Train Bot"},
             "to": [{"email": user_email}],
-            "subject": f"🚨 SEAT AVAILABLE: Train {trainnumber} ({coach})",
+            "subject": f"SEAT AVAILABLE: Train {trainnumber} ({coach})",
             "textContent": f"Great news!\n\nTrain {trainnumber} for {coach} class is now showing as: {currentstatus}.\n\nGet to your computer and book it fast!"
         }
 
-        # Convert payload to bytes and build the request headers
         data = json.dumps(payload).encode('utf-8')
         req = urllib.request.Request(url, data=data, method='POST')
         req.add_header('accept', 'application/json')
         req.add_header('api-key', api_key)
         req.add_header('content-type', 'application/json')
 
-        # Fire it off!
+        
         with urllib.request.urlopen(req) as response:
             if response.status == 201:
                 print("Brevo API alert sent successfully!")
@@ -326,44 +376,43 @@ async def login():
     playwright=await async_playwright().start()
 
     print("[System] Spawning independent Chrome process...")
-    chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-    user_data_dir = r"C:\chrome_dev_profile"
+    chromepath = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+    userdatadir = r"C:\chrome_dev_profile"
     
     #opening the chrome window
     try:
         browser = await playwright.chromium.connect_over_cdp("http://localhost:9222")
         print("[System] Successfully attached to existing Chrome window!")
     except Exception:
-        # If we reach here, Chrome is NOT open, so we spawn a new one.
         print("[System] Spawning NEW independent Chrome process...")
-        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-        user_data_dir = r"C:\chrome_dev_profile"
+        chromepath = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+        userdatadir = r"C:\chrome_dev_profile"
         try:
-            # DETACHED_PROCESS (0x00000008) cuts the parent-child bond on Windows
             subprocess.Popen(
-                [chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}","--start-maximized",              #"--window-size=390,844"
+                [chromepath, "--remote-debugging-port=9222", f"--user-data-dir={userdatadir}","--window-position=-32000,-32000",              #"--window-size=390,844"
                     #"--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
                 ],      
                 creationflags=0x00000008 if os.name == 'nt' else 0,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            await asyncio.sleep(2)      # Give Chrome a quick moment to spin up its socket server
+            await asyncio.sleep(2)     
 
             try:
                 browser = await playwright.chromium.connect_over_cdp("http://localhost:9222")
                 await asyncio.sleep(4)
             except Exception as e:
-                print(f"❌ Connection Failed! {e}")
+                print(f" Connection Failed! {e}")
                 return False
 
         except Exception as e:
-            print(f"❌ Failed to launch Chrome automatically: {e}")
+            print(f" Failed to launch Chrome automatically: {e}")
             return False
 
     print("[System] Connecting Playwright via CDP link...")
     context=browser.contexts[0]
     page=context.pages[0] if context.pages else await context.new_page()
+    await page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "media", "font"] else route.continue_())
 
     #await page.set_viewport_size({"width": 390, "height": 844})
 
@@ -418,9 +467,9 @@ async def login():
     else:
         print("[System] Desktop viewport detected (Width: {windowwidth}px)")
 
-        login_selector = "a:has-text('LOGIN / REGISTER')"
-        await page.wait_for_selector(login_selector, timeout=15000)
-        await page.click(login_selector)
+        loginselector = "a:has-text('LOGIN / REGISTER')"
+        await page.wait_for_selector(loginselector, timeout=15000)
+        await page.click(loginselector)
 
     await page.fill('input[formcontrolname="userid"]', os.getenv("IRCTCUSER"))
     await page.fill('input[formcontrolname="password"]', os.getenv("IRCTCPASS"))
@@ -457,9 +506,9 @@ async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
         await page.keyboard.press("Backspace")
         await frominput.type(fromcode, delay=150)
         
-        from_dropdown = page.locator(f"li[role='option']:has-text('{fromcode}')").first
-        await from_dropdown.wait_for(state="visible", timeout=10000)
-        await from_dropdown.click()
+        fromdropdown = page.locator(f"li[role='option']:has-text('{fromcode}')").first
+        await fromdropdown.wait_for(state="visible", timeout=10000)
+        await fromdropdown.click()
         await asyncio.sleep(0.5)
 
         toinput = page.locator("p-autocomplete#destination input")
@@ -468,9 +517,9 @@ async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
         await page.keyboard.press("Backspace")
         await toinput.type(tocode, delay=150)
         
-        to_dropdown = page.locator(f"li[role='option']:has-text('{tocode}')").first
-        await to_dropdown.wait_for(state="visible", timeout=10000)
-        await to_dropdown.click()
+        todropdown = page.locator(f"li[role='option']:has-text('{tocode}')").first
+        await todropdown.wait_for(state="visible", timeout=10000)
+        await todropdown.click()
         await asyncio.sleep(0.5)
 
         dateinput = page.locator("p-calendar#jDate input")
@@ -502,7 +551,7 @@ async def searchfill(fromcode: str, tocode: str, date: str, coach: str):
         return False
 
 async def gettrain(trainnumber: str):
-    await asyncio.sleep(3)
+    await asyncio.sleep(2)
     page=loginsession["page"]
     print(f"[System] Getting DIV of the train #{trainnumber}")
     traincard=page.locator("app-train-avl-enq").filter(has_text=trainnumber)
@@ -510,7 +559,7 @@ async def gettrain(trainnumber: str):
     if await traincard.count()>0:
         print(f"Train DIV Found!!!")
         await traincard.scroll_into_view_if_needed()
-    await asyncio.sleep(7)
+    await asyncio.sleep(1)
     return traincard
 
 async def gettobooking(traincard, coach: str, date: str):
@@ -518,11 +567,11 @@ async def gettobooking(traincard, coach: str, date: str):
     try:
         coachdiv=traincard.locator("div.pre-avl").filter(has_text=coach)
         refreshbutton=coachdiv.locator("..").locator("div.link", has_text="Refresh")
-        await asyncio.sleep(4)
+        await asyncio.sleep(2)
         if await refreshbutton.is_visible():
             print(f"[System] Refreshing {coach}...")
             await refreshbutton.click()
-            await asyncio.sleep(4)
+            await asyncio.sleep(2)
 
         date=datetime.datetime.strptime(date,"%d/%m/%Y")
         formatteddate=date.strftime("%d %b")
@@ -539,7 +588,7 @@ async def gettobooking(traincard, coach: str, date: str):
         booknowbutton=traincard.locator("button.btnDefault.train_Search", has_text="Book Now")
         await booknowbutton.wait_for(state="visible",timeout=5000)
         await booknowbutton.click()
-        await asyncio.sleep(4)
+        await asyncio.sleep(2)
 
         #For Station Change Confirmations
         try:
@@ -596,7 +645,6 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
         await page.mouse.click(0, 0)
         await asyncio.sleep(0.5)
         
-        #2. BERTH FIX
         if preference != "None":
             berthdropdown = page.locator('select[formcontrolname="passengerBerthChoice"]')
             await berthdropdown.click()
@@ -607,26 +655,12 @@ async def passengerfill(name: str, age: str, gender: str, preference: str):
             except Exception as e:
                 print(f"[Warning] Could not select Berth '{preference}'. Moving on.")
             
-        for _ in range(4): 
+        for _ in range(3): 
             await page.keyboard.press("PageDown")
             await asyncio.sleep(0.4)
             
         print("[System] Ready for Payment.")
         await asyncio.sleep(2)
-        
-        print("[System] Executing CSS Override to reveal the Continue button...")
-        await page.evaluate("""
-            const btns = Array.from(document.querySelectorAll('button')).filter(b => b.innerText.includes('Continue'));
-            if(btns.length > 0) {
-                const btn = btns[0];
-                btn.style.position = 'fixed';
-                btn.style.bottom = '50px'; /* Floats it slightly above the bottom */
-                btn.style.left = '5%';
-                btn.style.width = '90%';
-                btn.style.zIndex = '999999'; /* Forces it on top of EVERYTHING */
-                btn.style.boxShadow = '0px 0px 20px red'; /* Red glow so you can't miss it */
-            }
-        """)
 
         print("[System] Ready for Payment. The Continue button has been floated for you!")
         await asyncio.sleep(2)
@@ -656,7 +690,7 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
             if not confirmed_mismatch:
                 print("\n[System] Tool execution BLOCKED! Forcing AI to ask for permission.")
                 return (
-                    f"🛑 ACTION BLOCKED: Station mismatch! The user originally searched for {LAST_SEARCH_FROM}, "
+                    f"ACTION BLOCKED: Station mismatch! The user originally searched for {LAST_SEARCH_FROM}, "
                     f"but this train departs from {fromstation.upper()}. "
                     f"You MUST ask the user: 'Warning: This train departs from {fromstation.upper()}. Proceed?' "
                     f"Do NOT run this tool again until they say YES."
@@ -718,6 +752,31 @@ async def normalbooking(name: str, age: str, gender: str, preference: str, train
     print("  2. Select your Payment Method.")
     print("  3. Click 'Continue' to proceed to the CAPTCHA page.")
     print("═"*50 + "\n")
+
+    await asyncio.sleep(7)
+
+    try:
+        page = loginsession["page"]
+        cdp = await page.context.new_cdp_session(page)
+        window_info = await cdp.send("Browser.getWindowForTarget")
+        
+        await cdp.send("Browser.setWindowBounds", {
+            "windowId": window_info["windowId"],
+            "bounds": {"windowState": "normal", "left": 0, "top": 0, "width": 1200, "height": 800}
+        })
+        
+        await cdp.send("Browser.setWindowBounds", {
+            "windowId": window_info["windowId"],
+            "bounds": {"windowState": "maximized"}
+        })
+
+        # 3. THE MAGIC: Force the OS to give it absolute priority
+        await page.bring_to_front() # Tells the OS to pull this specific tab forward
+        await page.evaluate("window.focus()") # Injects a JS focus command directly into the page
+
+        print("\n[System] Booking ready! Popping browser to the foreground for Payment...")
+    except Exception as e:
+        pass
 
     return True
 
