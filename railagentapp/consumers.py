@@ -42,9 +42,7 @@ class RailAgentConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
-        # Fetch the user's IRCTC details securely from the database
         profiledata=await self.get_passenger_profile()
-
         #Inject this data as a "System Message" into this user's specific chat history
         self.chat_history=[
             {

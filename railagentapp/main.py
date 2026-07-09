@@ -137,7 +137,7 @@ def build_agent():
         2. Your ONLY action for this turn must be to reply to the user with the warning. 
         3. You must wait for the user to explicitly reply and confirm the station change in the NEXT turn before triggering the booking tool.
         
-        Example Warning Format: "⚠️ Warning: You searched for [User_Code], but this train actually departs from/arrives at [Train_Code]. Do you want me to proceed with the booking?"
+        Example Warning Format: "Warning: You searched for [User_Code], but this train actually departs from/arrives at [Train_Code]. Do you want me to proceed with the booking?"
         '''
         )
     return agent
